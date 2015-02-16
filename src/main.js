@@ -9,7 +9,8 @@ require([
 
 function (exampleVert, exampleFrag, simplexNoise) {
   var camera, controls, renderer, scene;
-  var sphere, sphereUniforms, sphereMaterial;
+  var plane;
+  var rendererStats;
   var t = new Date();
 
   init();
@@ -22,21 +23,7 @@ function (exampleVert, exampleFrag, simplexNoise) {
 
     scene = new THREE.Scene();
 
-    sphereUniforms = {
-        dt: {type: "f", value: 0.0}
-    };
-
-    sphereMaterial = new THREE.ShaderMaterial({
-        uniforms: sphereUniforms,
-        vertexShader: simplexNoise + exampleVert,
-        fragmentShader: simplexNoise + exampleFrag
-    });
-
-    sphere = new THREE.Mesh(
-        new THREE.SphereGeometry(1.0, 200, 200),
-        sphereMaterial
-    );
-    scene.add(sphere);
+    
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
@@ -44,12 +31,17 @@ function (exampleVert, exampleFrag, simplexNoise) {
 
     controls = new THREE.OrbitControls(camera);
     document.body.appendChild(renderer.domElement);
+
+    rendererStats = new THREEx.RendererStats();
+    rendererStats.domElement.style.position = 'absolute';
+    rendererStats.domElement.style.left = '0px';
+    rendererStats.domElement.style.bottom   = '0px';
+    document.body.appendChild(rendererStats.domElement);
   }
 
   function animate() {
     var dt = new Date() - t;
     t = new Date();
-    sphereUniforms.dt.value += dt;
 
     renderer.render(scene, camera);
     controls.update();
