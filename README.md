@@ -1,2 +1,4 @@
-# chunked-lod
-Experimental implementation of the chunked LOD algorithm
+Chunked LOD
+============
+
+Experimental implementation of the chunked LOD algorithm.
