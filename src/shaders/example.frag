@@ -1,9 +1,7 @@
 precision mediump float;
 
-uniform float dt;
-
-varying float r;
+uniform float level;
 
 void main() {
-  gl_FragColor = vec4(10.0*(1.07 - r), 20.0*(0.98 - r), 25.0*(0.93 - r), 1.0);
+  gl_FragColor = vec4(sin(level), cos(1.0 - level*2.0), sin(level*999999.0) + 0.5, 1.0);
 }

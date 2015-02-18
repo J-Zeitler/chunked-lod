@@ -6,12 +6,13 @@ var TileNode = function (opts) {
   this.master = opts.master;
   this.level = opts.level;
   this.ulrichFactor = opts.ulrichFactor;
+  this.transform = opts.transform;
 
   this.scale = this.master.getScale()/Math.pow(2, this.level);
 
   this.center = this.getCenter();
 
-  this.id = this.center.x + ":" + this.center.y + ":" + this.center.z;
+  this.id = this.getId();
 
   this.addToMaster(this);
 };
@@ -21,13 +22,13 @@ var TileNode = function (opts) {
  */
 TileNode.prototype.update = function () {
   if (this.isVisible()) {
-    if (this.shouldMerge()) {
-      this.merge();
-      this.addToMaster();
-      this.update();
-    } else if (this.shouldSplit()) {
+    if (this.shouldSplit()) {
       this.split();
       this.removeFromMaster();
+      this.update();
+    } else if (this.shouldMerge()) {
+      this.merge();
+      this.addToMaster();
       this.update();
     } else if (this.isSplit) {
       this.updateChildren();
@@ -49,14 +50,14 @@ TileNode.prototype.isVisible = function () {
 };
 
 TileNode.prototype.getDistance = function () {
-  return this.master.getCameraPosition().distanceTo(this.position);
+  return this.master.getDistanceToTile(this);
 };
 
 /**
  * Get the center point of this tile
  */
 TileNode.prototype.getCenter = function () {
-  if (this.center) return this.center;
+  if (this.center) return this.center.clone();
 
   var wd = this.master.getWidthDir();
   var hd = this.master.getHeightDir();
@@ -66,6 +67,21 @@ TileNode.prototype.getCenter = function () {
     this.position.y + wd.y*this.scale + hd.y*this.scale,
     this.position.z + wd.z*this.scale + hd.z*this.scale
   );
+};
+
+TileNode.prototype.getId = function () {
+  if (this.id) return this.id;
+
+  var id = this.center.x + ":" + this.center.y + ":" + this.center.z;
+
+  if (this.transform) {
+    var transfromString = "";
+    for (var i = 0; i < this.transform.elements.length; i++) {
+      transfromString += this.transform.elements[i];
+    }
+    id += transfromString;
+  }
+  return id;
 };
 
 TileNode.prototype.shouldMerge = function () {
@@ -100,7 +116,8 @@ TileNode.prototype.split = function () {
     parent: this,
     master: this.master,
     level: this.level + 1,
-    ulrichFactor: this.ulrichFactor/2
+    ulrichFactor: this.ulrichFactor/2,
+    transform: this.transform
   }
 
   // move anchor to BL corner

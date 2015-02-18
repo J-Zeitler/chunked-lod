@@ -9,6 +9,9 @@ var ChunkedPlane = function (opts) {
   this.scaleFactor = opts.scale || 1;
   this.maxLevels = opts.maxLevels || 8;
 
+  this.vertShader = opts.shaders.vert;
+  this.fragShader = opts.shaders.frag;
+
   this.perspectiveScaling = 1;
   this.updatePerspectiveScaling();
 
@@ -26,34 +29,65 @@ ChunkedPlane.prototype.initTileTree = function () {
     parent: null,
     master: this,
     level: 0,
-    ulrichFactor: 0.01
+    ulrichFactor: 0.02*this.scaleFactor
   });
 };
 
 ChunkedPlane.prototype.addTile = function (tile) {
-  var geometry = new THREE.PlaneBufferGeometry(tile.scale, tile.scale, this.tileRes, this.tileRes);
-  var material = new THREE.MeshBasicMaterial({ wireframe: true, color: 0xff0000 });
-  var mesh = new THREE.Mesh(geometry, material);
+  var tileGeometry = new THREE.PlaneBufferGeometry(tile.scale, tile.scale, this.tileRes, this.tileRes);
+
+  var tileMaterial;
+  if (this.vertShader && this.fragShader) {
+    var tileUniforms = {
+      worldScale: {type: "f", value: this.scaleFactor*0.5}
+    };
+
+    tileMaterial = new THREE.ShaderMaterial({
+      uniforms: tileUniforms,
+      vertexShader: this.vertShader,
+      fragmentShader: this.fragShader
+    });
+
+    tileMaterial.wireframe = true;
+    tileMaterial.wireframeLinewidth = 1.0;
+  } else {
+    tileMaterial = new THREE.MeshBasicMaterial({wireframe: true, color: 'red'});
+  }
 
   var translation = new THREE.Matrix4().makeTranslation(
     tile.position.x,
     tile.position.y,
     tile.position.z
   );
-  mesh.geometry.applyMatrix(translation);
+  tileGeometry.applyMatrix(translation);
 
-  mesh.name = tile.id;
+  var tileMesh = new THREE.Mesh(
+    tileGeometry,
+    tileMaterial
+  );
 
-  this.add(mesh);
+  // tileMesh.frustumCulled = false;
+  tileMesh.name = tile.id;
+
+  this.add(tileMesh);
 };
 
 ChunkedPlane.prototype.removeTile = function (tile) {
   var selectedTile = this.getObjectByName(tile.id);
-  if (selectedTile) this.remove(selectedTile);
+  if (selectedTile) {
+    selectedTile.geometry.dispose();
+    selectedTile.material.dispose();
+    this.remove(selectedTile);
+  }
 };
 
 ChunkedPlane.prototype.getCameraPosition = function () {
-  return this.camera.position.clone();
+  var invModelMatrix = new THREE.Matrix4();
+  invModelMatrix.getInverse(this.matrix);
+
+  var localCam = this.camera.position.clone().applyMatrix4(invModelMatrix);
+
+  return localCam;
 };
 
 ChunkedPlane.prototype.update = function () {
@@ -83,6 +117,13 @@ ChunkedPlane.prototype.getHeightDir = function () {
 
 ChunkedPlane.prototype.getScale = function () {
   return this.scaleFactor;
+};
+
+// TODO: This does not follow the Cube/Plane approach
+ChunkedPlane.prototype.getDistanceToTile = function (tile) {
+  var tilePos = tile.position.clone();
+  tilePos.applyMatrix4(this.matrix);
+  return this.camera.position.distanceTo(tilePos);
 };
 
 /**
