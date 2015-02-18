@@ -17,18 +17,20 @@ function (tileVert, exampleFrag, simplexNoise) {
   var chunkedCubeSphere;
   var t = new Date();
 
+  var EARTH_RADIUS = 6371000;
+
   init();
   animate();
 
   function init() {
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.01, 9999);
-    camera.position.set(0, 0, 512);
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.01, EARTH_RADIUS*5);
+    camera.position.set(0, 0, EARTH_RADIUS*2);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     scene = new THREE.Scene();
 
     chunkedCubeSphere = new ChunkedCubeSphere({
-      scale: 256,
+      scale: EARTH_RADIUS,
       tileRes: 8,
       camera: camera,
       shaders: {
@@ -38,19 +40,20 @@ function (tileVert, exampleFrag, simplexNoise) {
     });
     scene.add(chunkedCubeSphere);
 
-    var axes = buildAxes(512);
+    var axes = buildAxes(EARTH_RADIUS*3);
     scene.add(axes);
 
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
     renderer.setClearColor(0x222222, 1);
+    document.body.appendChild(renderer.domElement);
 
-    console.log(renderer);
-    console.log(camera);
+    // console.log(renderer);
+    // console.log(camera);
 
     controls = new THREE.OrbitControls(camera);
-    document.body.appendChild(renderer.domElement);
+    console.log(controls);
 
     rendererStats = new THREEx.RendererStats();
     rendererStats.domElement.style.position = 'absolute';
@@ -59,6 +62,18 @@ function (tileVert, exampleFrag, simplexNoise) {
     document.body.appendChild(rendererStats.domElement);
   }
 
+  function updateCameraSpeed() {
+    var camToOrigin = camera.position.length();
+    var camToSurface = camToOrigin - EARTH_RADIUS*0.5;
+    console.log("camera to surface: ", camToSurface);
+
+    var zoomSpeed = Math.abs(Math.atan(camToSurface/EARTH_RADIUS));
+
+    controls.zoomSpeed = zoomSpeed;
+    controls.rotateSpeed = zoomSpeed;
+  }
+
+  var i = 0
   function animate() {
     var dt = new Date() - t;
     t = new Date();
@@ -67,8 +82,12 @@ function (tileVert, exampleFrag, simplexNoise) {
 
     rendererStats.update(renderer);
     renderer.render(scene, camera);
+
+    updateCameraSpeed();
     controls.update();
-    requestAnimationFrame(animate);
+
+    // if (i++ < 1000)
+      requestAnimationFrame(animate);
   }
 
   function buildAxes( length ) {

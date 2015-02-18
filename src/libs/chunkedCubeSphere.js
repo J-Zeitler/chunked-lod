@@ -7,7 +7,7 @@ var ChunkedCubeSphere = function (opts) {
   this.maxScreenSpaceError = opts.maxScreenSpaceError || 2;
   this.camera = opts.camera;
   this.radius = opts.scale*0.5 || 1;
-  this.maxLevels = opts.maxLevels || 16;
+  this.maxLevels = opts.maxLevels || 32;
 
   this.vertShader = opts.shaders.vert;
   this.fragShader = opts.shaders.frag;
@@ -139,7 +139,7 @@ ChunkedCubeSphere.prototype.addTile = function (tile) {
     tileMaterial
   );
 
-  // tileMesh.frustumCulled = false;
+  tileMesh.frustumCulled = false;
   tileMesh.name = tile.id;
 
   this.add(tileMesh);
@@ -171,10 +171,6 @@ ChunkedCubeSphere.prototype.update = function () {
   });
 };
 
-ChunkedCubeSphere.prototype.getPerspectiveScaling = function () {
-  return this.perspectiveScaling;
-};
-
 ChunkedCubeSphere.prototype.getMaxScreenSpaceError = function () {
   return this.maxScreenSpaceError;
 };
@@ -195,10 +191,30 @@ ChunkedCubeSphere.prototype.getScale = function () {
   return this.radius*2;
 };
 
+ChunkedCubeSphere.prototype.getRadius = function () {
+  return this.radius;
+};
+
 ChunkedCubeSphere.prototype.getDistanceToTile = function (tile) {
   var tilePos = tile.position.clone().applyMatrix4(tile.transform);
-  var spherePos = tilePos.normalize().multiplyScalar(this.radius);
+  var spherePos = this._cube2sphere(tilePos);
+  spherePos.applyMatrix4(this.matrix);
   return this.camera.position.distanceTo(spherePos);
+};
+
+ChunkedCubeSphere.prototype.getCamToCenter = function () {
+  return this.camera.position.clone().multiplyScalar(-1);
+};
+
+ChunkedCubeSphere.prototype.getCamToTile = function (tile) {
+  var tilePos = tile.position.clone().applyMatrix4(tile.transform);
+  var spherePos = this._cube2sphere(tilePos);
+  spherePos.applyMatrix4(this.matrix);
+  return spherePos.sub(this.camera.position);
+};
+
+ChunkedCubeSphere.prototype.getPerspectiveScaling = function () {
+  return this.perspectiveScaling;
 };
 
 /**

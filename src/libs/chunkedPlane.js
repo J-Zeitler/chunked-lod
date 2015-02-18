@@ -39,7 +39,8 @@ ChunkedPlane.prototype.addTile = function (tile) {
   var tileMaterial;
   if (this.vertShader && this.fragShader) {
     var tileUniforms = {
-      worldScale: {type: "f", value: this.scaleFactor*0.5}
+      worldScale: {type: "f", value: this.scaleFactor*0.5},
+      level: {type: "f", value: tile.level}
     };
 
     tileMaterial = new THREE.ShaderMaterial({

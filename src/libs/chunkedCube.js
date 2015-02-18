@@ -54,7 +54,7 @@ ChunkedCube.prototype.addChunkedPlane = function (rot, trans) {
   var transform = new THREE.Matrix4();
   transform.multiplyMatrices(trans, rot);
 
-  var plane = new ChunkedCubeSpherePlane(this.opts);
+  var plane = new ChunkedPlane(this.opts);
   plane.applyMatrix(transform);
   this.add(plane);
   this.sides.push(plane);

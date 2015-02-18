@@ -6,7 +6,6 @@ var TileNode = function (opts) {
   this.master = opts.master;
   this.level = opts.level;
   this.ulrichFactor = opts.ulrichFactor;
-  this.transform = opts.transform;
 
   this.scale = this.master.getScale()/Math.pow(2, this.level);
 
@@ -33,8 +32,6 @@ TileNode.prototype.update = function () {
     } else if (this.isSplit) {
       this.updateChildren();
     }
-  } else if (this.isSplit) {
-    this.updateChildren();
   } else {
     this.removeFromMaster();
   }
@@ -48,33 +45,8 @@ TileNode.prototype.updateChildren = function () {
 };
 
 TileNode.prototype.isVisible = function () {
-  return this.isWithinHorizon() && this.isInFrustum();
-};
-
-TileNode.prototype.isWithinHorizon = function () {
-  var r = this.master.getRadius();
-  var camToTile = this.master.getCamToTile(this);
-  var camToCenter = this.master.getCamToCenter();
-
-  var camDistToCenter = camToCenter.length();
-
-  var dotCtCc = camToTile.dot(camToCenter.divideScalar(camDistToCenter));
-
-  // console.log(
-  //   "\ncamToTile: ", camToTile,
-  //   "\ncamToCenter: ", camToCenter,
-  //   "\ncamDistToCenter: ", camDistToCenter,
-  //   "\ncamDistToTile: ", camToTile.length(),
-  //   "\nprojection: ", dotCtCc,
-  //   "\ncamToPlane: ", (camDistToCenter - r*r/camDistToCenter)
-  // );
-
-  return dotCtCc < (camDistToCenter - r*r/camDistToCenter);
-};
-
-TileNode.prototype.isInFrustum = function () {
   return true;
-}
+};
 
 TileNode.prototype.getDistance = function () {
   return this.master.getDistanceToTile(this);
