@@ -3,8 +3,8 @@ precision mediump float;
 uniform sampler2D heightmap;
 uniform float worldScale;
 
-varying vec3 pos;
-varying vec2 uVu;
+// varying vec3 pos;
+// varying vec2 uVu;
 
 /**
  * cube2sphere from:
