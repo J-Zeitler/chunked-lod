@@ -24,6 +24,8 @@ function (tileVert, exampleFrag, simplexNoise) {
   animate();
 
   function init() {
+    System.logSystemInfo();
+
     camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.01, EARTH_RADIUS*5);
     camera.position.set(0, 0, EARTH_RADIUS*2);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
