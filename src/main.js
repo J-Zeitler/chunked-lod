@@ -65,7 +65,7 @@ function (tileVert, exampleFrag, simplexNoise) {
   function updateCameraSpeed() {
     var camToOrigin = camera.position.length();
     var camToSurface = camToOrigin - EARTH_RADIUS*0.5;
-    console.log("camera to surface: ", camToSurface);
+    // console.log("camera to surface: ", camToSurface);
 
     var zoomSpeed = Math.abs(Math.atan(camToSurface/EARTH_RADIUS));
 

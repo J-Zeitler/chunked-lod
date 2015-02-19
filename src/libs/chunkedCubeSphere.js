@@ -139,7 +139,6 @@ ChunkedCubeSphere.prototype.addTile = function (tile) {
     tileMaterial
   );
 
-  tileMesh.frustumCulled = false;
   tileMesh.name = tile.id;
 
   this.add(tileMesh);

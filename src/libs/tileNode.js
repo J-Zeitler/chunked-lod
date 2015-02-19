@@ -32,8 +32,11 @@ TileNode.prototype.update = function () {
       this.update();
     } else if (this.isSplit) {
       this.updateChildren();
+    } else if (!this.added) {
+      this.addToMaster();
     }
   } else if (this.isSplit) {
+    // TODO: revisit this
     this.updateChildren();
   } else {
     this.removeFromMaster();
@@ -69,7 +72,7 @@ TileNode.prototype.isWithinHorizon = function () {
   //   "\ncamToPlane: ", (camDistToCenter - r*r/camDistToCenter)
   // );
 
-  return dotCtCc < (camDistToCenter - r*r/camDistToCenter);
+  return dotCtCc - this.scale*0.5 < (camDistToCenter - r*r/camDistToCenter);
 };
 
 TileNode.prototype.isInFrustum = function () {
@@ -193,6 +196,7 @@ TileNode.prototype.merge = function () {
 
 TileNode.prototype.addToMaster = function () {
   this.master.addTile(this);
+  this.added = true;
 };
 
 /**
@@ -200,6 +204,7 @@ TileNode.prototype.addToMaster = function () {
  */
 TileNode.prototype.removeFromMaster = function () {
   this.master.removeTile(this);
+  this.added = false;
 };
 
 /**
