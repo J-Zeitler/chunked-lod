@@ -146,7 +146,7 @@ TileNode.prototype.split = function () {
     parent: this,
     master: this.master,
     level: this.level + 1,
-    ulrichFactor: this.ulrichFactor/2,
+    ulrichFactor: this.ulrichFactor*0.5,
     transform: this.transform
   }
 

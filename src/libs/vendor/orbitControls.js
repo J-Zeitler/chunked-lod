@@ -52,7 +52,7 @@ THREE.OrbitControls = function ( object, domElement ) {
     this.rotateSpeed = 1.0;
 
     // Set to true to disable this control
-    this.noPan = false;
+    this.noPan = true;
     this.keyPanSpeed = 7.0; // pixels moved per arrow key push
 
     // Set to true to automatically rotate around the target
@@ -73,7 +73,7 @@ THREE.OrbitControls = function ( object, domElement ) {
     this.noKeys = false;
 
     // The four arrow keys
-    this.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
+    this.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40, ALT: 18 };
 
     // Mouse buttons
     this.mouseButtons = { ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
@@ -517,8 +517,19 @@ THREE.OrbitControls = function ( object, domElement ) {
                 scope.update();
                 break;
 
+            // case scope.keys.ALT:
+            //     scope.centerTarget = scope.target;
+            //     scope.target = scope.object.position;
+            //     break;
         }
+    }
 
+    function onKeyUp( event ) {
+        // switch ( event.keyCode ) {
+        //     case scope.keys.ALT:
+        //         scope.target = scope.centerTarget;
+        //         break;
+        // }
     }
 
     function touchstart( event ) {
@@ -665,6 +676,7 @@ THREE.OrbitControls = function ( object, domElement ) {
     this.domElement.addEventListener( 'touchmove', touchmove, false );
 
     window.addEventListener( 'keydown', onKeyDown, false );
+    window.addEventListener( 'keyup', onKeyUp, false );
 
     // force an update at start
     this.update();
