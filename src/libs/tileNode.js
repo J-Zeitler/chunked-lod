@@ -10,6 +10,17 @@ var TileNode = function (opts) {
 
   this.scale = this.master.getScale()/Math.pow(2, this.level);
 
+  var pos = this.position.clone();
+  pos.sub(this.master.getWidthDir().multiplyScalar(this.scale*0.5));
+  pos.sub(this.master.getHeightDir().multiplyScalar(this.scale*0.5));
+
+  this.corners = [
+    pos, // BL
+    pos.clone().add(new THREE.Vector3(this.scale, 0, 0)), // BR
+    pos.clone().add(new THREE.Vector3(0, this.scale, 0)), // TL
+    pos.clone().add(new THREE.Vector3(this.scale, this.scale, 0)) // TR
+  ];
+
   this.center = this.getCenter();
 
   this.id = this.getId();
@@ -55,6 +66,8 @@ TileNode.prototype.isVisible = function () {
 };
 
 TileNode.prototype.isWithinHorizon = function () {
+  return true;
+
   var r = this.master.getRadius();
   var camToTile = this.master.getCamToTile(this);
   var camToCenter = this.master.getCamToCenter();
@@ -76,7 +89,8 @@ TileNode.prototype.isWithinHorizon = function () {
 };
 
 TileNode.prototype.isInFrustum = function () {
-  return true;
+  return this.master.isTileInFrustum(this);
+  // return true;
 }
 
 TileNode.prototype.getDistance = function () {

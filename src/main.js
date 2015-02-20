@@ -33,7 +33,7 @@ function (tileVert, exampleFrag, simplexNoise) {
     /**
      * Scene + camera
      */
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.00001*EARTH_RADIUS, EARTH_RADIUS*5);
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.00001*EARTH_RADIUS, EARTH_RADIUS*100);
     camera.position.set(0, 0, EARTH_RADIUS*2);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
@@ -49,7 +49,8 @@ function (tileVert, exampleFrag, simplexNoise) {
       shaders: {
         vert: tileVert,
         frag: exampleFrag
-      }
+      },
+      scene: scene
     });
     scene.add(chunkedCubeSphere);
 

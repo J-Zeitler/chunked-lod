@@ -18,6 +18,10 @@ var ChunkedCubeSphere = function (opts) {
   this.widthDir = opts.widthDir || new THREE.Vector3(1, 0, 0);
   this.heightDir = opts.heightDir || new THREE.Vector3(0, 1, 0);
 
+  this.debug = new THREE.Object3D();
+  this.debug.name = "debug";
+  opts.scene.add(this.debug);
+
   this.sides = [];
   this.initSides();
 };
@@ -91,7 +95,6 @@ ChunkedCubeSphere.prototype._cube2sphere = function (cube) {
 };
 
 ChunkedCubeSphere.prototype._spherifyVerts = function (geometry) {
-  // console.log(geometry);
   var verts = geometry.attributes.position.array;
   for (var i = 0; i < verts.length; i += 3) {
     var pos = new THREE.Vector3(verts[i], verts[i + 1], verts[i + 2]);
@@ -154,12 +157,24 @@ ChunkedCubeSphere.prototype.removeTile = function (tile) {
   }
 };
 
-ChunkedCubeSphere.prototype.getCameraPosition = function () {
-  return this.camera.position.clone().applyMatrix4(this.camera.matrixWorld);
+ChunkedCubeSphere.prototype.addDebugPoint = function (pos) {
+  var geometry = new THREE.SphereGeometry(this.radius*0.01, 2, 2);
+  var material = new THREE.MeshBasicMaterial({color: 0xffff00});
+  var debugSphere = new THREE.Mesh( geometry, material );
+  debugSphere.position.x = pos.x;
+  debugSphere.position.y = pos.y;
+  debugSphere.position.z = pos.z;
+  this.debug.add(debugSphere);
 };
 
 ChunkedCubeSphere.prototype.update = function () {
   this.updatePerspectiveScaling();
+
+  this.debug.children.forEach(function (c) {
+    c.geometry.dispose();
+    c.material.dispose();
+    this.debug.remove(c);
+  }, this);
 
   this.sides.forEach(function (s) {
     s.update();
@@ -190,6 +205,12 @@ ChunkedCubeSphere.prototype.getRadius = function () {
   return this.radius;
 };
 
+ChunkedCubeSphere.prototype.getCameraPosition = function () {
+  this.camera.updateMatrix();
+  this.camera.updateMatrixWorld();
+  return this.camera.position.clone().applyMatrix4(this.camera.matrixWorld);
+};
+
 ChunkedCubeSphere.prototype.getDistanceToTile = function (tile) {
   var tilePos = tile.position.clone().applyMatrix4(tile.transform);
   var spherePos = this._cube2sphere(tilePos);
@@ -206,6 +227,33 @@ ChunkedCubeSphere.prototype.getCamToTile = function (tile) {
   var spherePos = this._cube2sphere(tilePos);
   spherePos.applyMatrix4(this.matrix);
   return spherePos.sub(this.getCameraPosition());
+};
+
+ChunkedCubeSphere.prototype.isTileInFrustum = function (tile) {
+  this.camera.updateMatrix();
+  this.camera.updateMatrixWorld();
+  this.camera.matrixWorldInverse.getInverse(this.camera.matrixWorld);
+
+  var tileCorners = [];
+  tile.corners.forEach(function (c) {
+    var tilePos = c.clone().applyMatrix4(tile.transform);
+    var spherePos = this._cube2sphere(tilePos);
+    tileCorners.push(spherePos.applyMatrix4(this.matrix));
+  }, this);
+
+  var frustum = new THREE.Frustum();
+  frustum.setFromMatrix(new THREE.Matrix4().multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse));
+
+  for (var i = 0 ; i < tileCorners.length; i++) {
+    if (frustum.containsPoint(tileCorners[i])) return true;
+  }
+
+  // Outside frustum
+  // tileCorners.forEach(function (c) {
+  //   this.addDebugPoint(c);
+  // }, this);
+
+  return false;
 };
 
 ChunkedCubeSphere.prototype.getPerspectiveScaling = function () {
