@@ -19,6 +19,8 @@ var ChunkedCubeSphere = function (opts) {
   this.widthDir = opts.widthDir || new THREE.Vector3(1, 0, 0);
   this.heightDir = opts.heightDir || new THREE.Vector3(0, 1, 0);
 
+  this.frustum = new THREE.Frustum();
+
   // debug
   this.debug = new THREE.Object3D();
   this.debug.name = "debug";
@@ -172,6 +174,8 @@ ChunkedCubeSphere.prototype.addDebugPoint = function (pos) {
 
 ChunkedCubeSphere.prototype.update = function () {
   this.updatePerspectiveScaling();
+  this.updateFrustum();
+  this.calculateCameraWorldPosition();
 
   this.debug.children.forEach(function (c) {
     c.geometry.dispose();
@@ -208,17 +212,29 @@ ChunkedCubeSphere.prototype.getRadius = function () {
   return this.radius;
 };
 
-ChunkedCubeSphere.prototype.getCameraPosition = function () {
+ChunkedCubeSphere.prototype.calculateCameraWorldPosition = function () {
   this.camera.updateMatrix();
-  this.camera.updateMatrixWorld();
-  return this.camera.position.clone().applyMatrix4(this.camera.matrixWorld);
+  this.cameraWorldPosition = this.camera.position.clone().applyMatrix4(this.camera.parent.matrix);
+};
+
+ChunkedCubeSphere.prototype.getCameraPosition = function () {
+  return this.cameraWorldPosition.clone();
 };
 
 ChunkedCubeSphere.prototype.getDistanceToTile = function (tile) {
-  var tilePos = tile.position.clone().applyMatrix4(tile.transform);
-  var spherePos = this._cube2sphere(tilePos);
-  spherePos.applyMatrix4(this.matrix);
-  return this.getCameraPosition().distanceTo(spherePos);
+  var minDist = Infinity;
+  var camPos = this.getCameraPosition();
+
+  tile.corners.forEach(function (corner) {
+    var tilePos = corner.clone().applyMatrix4(tile.transform);
+    var spherePos = this._cube2sphere(tilePos);
+    spherePos.applyMatrix4(this.matrix);
+
+    var dist = camPos.distanceTo(spherePos);
+    minDist = dist < minDist ? dist : minDist;
+  }, this);
+
+  return minDist;
 };
 
 ChunkedCubeSphere.prototype.getCamToCenter = function () {
@@ -226,10 +242,24 @@ ChunkedCubeSphere.prototype.getCamToCenter = function () {
 };
 
 ChunkedCubeSphere.prototype.getCamToTile = function (tile) {
-  var tilePos = tile.position.clone().applyMatrix4(tile.transform);
-  var spherePos = this._cube2sphere(tilePos);
-  spherePos.applyMatrix4(this.matrix);
-  return spherePos.sub(this.getCameraPosition());
+  var minDist = Infinity;
+  var closestCorner = new THREE.Vector3();
+  var camPos = this.getCameraPosition();
+
+  tile.corners.forEach(function (corner) {
+    var tilePos = corner.clone().applyMatrix4(tile.transform);
+    var spherePos = this._cube2sphere(tilePos);
+    spherePos.applyMatrix4(this.matrix);
+
+    var dist = camPos.distanceTo(spherePos);
+
+    if (dist < minDist) {
+      minDist = dist;
+      closestCorner = spherePos;
+    }
+  }, this);
+
+  return closestCorner.sub(camPos);
 };
 
 ChunkedCubeSphere.prototype.isTileInFrustum = function (tile) {
@@ -248,17 +278,9 @@ ChunkedCubeSphere.prototype.isTileInFrustum = function (tile) {
   tileGeometry.applyMatrix(tile.transform);
   this._spherifyVerts(tileGeometry);
 
-  var frustum = new THREE.Frustum();
-  frustum.setFromMatrix(new THREE.Matrix4().multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse));
-
   tileGeometry.computeBoundingBox();
-  if (frustum.intersectsBox(tileGeometry.boundingBox)) return true;
 
-  // Outside frustum
-  // tileCorners.forEach(function (c) {
-  //   this.addDebugPoint(c);
-  // }, this);
-
+  if (this.frustum.intersectsBox(tileGeometry.boundingBox)) return true;
   return false;
 };
 
@@ -276,4 +298,8 @@ ChunkedCubeSphere.prototype.updatePerspectiveScaling = function () {
   var aspect = window.innerWidth/window.innerHeight;
 
   this.perspectiveScaling = window.innerWidth/(aspect*heightScale);
+};
+
+ChunkedCubeSphere.prototype.updateFrustum = function () {
+  this.frustum.setFromMatrix(new THREE.Matrix4().multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse));
 };

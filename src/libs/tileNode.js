@@ -66,31 +66,18 @@ TileNode.prototype.isVisible = function () {
 };
 
 TileNode.prototype.isWithinHorizon = function () {
-  return true;
-
   var r = this.master.getRadius();
   var camToTile = this.master.getCamToTile(this);
   var camToCenter = this.master.getCamToCenter();
 
   var camDistToCenter = camToCenter.length();
-
   var dotCtCc = camToTile.dot(camToCenter.divideScalar(camDistToCenter));
-
-  // console.log(
-  //   "\ncamToTile: ", camToTile,
-  //   "\ncamToCenter: ", camToCenter,
-  //   "\ncamDistToCenter: ", camDistToCenter,
-  //   "\ncamDistToTile: ", camToTile.length(),
-  //   "\nprojection: ", dotCtCc,
-  //   "\ncamToPlane: ", (camDistToCenter - r*r/camDistToCenter)
-  // );
 
   return dotCtCc - this.scale*0.5 < (camDistToCenter - r*r/camDistToCenter);
 };
 
 TileNode.prototype.isInFrustum = function () {
   return this.master.isTileInFrustum(this);
-  // return true;
 }
 
 TileNode.prototype.getDistance = function () {

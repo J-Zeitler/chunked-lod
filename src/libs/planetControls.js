@@ -47,9 +47,7 @@ PlanetControls.prototype.update = function () {
 
 PlanetControls.prototype.updateOrbitSpeed = function () {
   var camToSurface = this.camera.position.length();
-
   var speed = Math.abs(Math.atan(camToSurface/this.planetRadius));
-
   this.orbitControls.rotateSpeed = speed;
 };
 
@@ -57,19 +55,10 @@ PlanetControls.prototype.getCameraPlanetProjection = function (cam) {
   return cam.position.clone().normalize().multiplyScalar(this.planetRadius);
 };
 
-PlanetControls.prototype.setZoomSpeed = function (zoomSpeed) {
-  this.orbitControls.zoomSpeed = zoomSpeed;
-};
-
-PlanetControls.prototype.setRotateSpeed = function (rotateSpeed) {
-  this.orbitControls.rotateSpeed = rotateSpeed;
-};
-
 PlanetControls.prototype.handleKeyDown = function (event) {
   if (event.keyCode === this.key) {
     this.tiltControls.enabled = true;
     this.orbitControls.enabled = false;
-    // console.log(this.camera.position.clone().applyMatrix4(this.camera.matrixWorld));
   }
 };
 
