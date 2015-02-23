@@ -4,7 +4,7 @@ var updateLod = true;
 
 require([
     "libs/vendor/text!shaders/tile.vert",
-    "libs/vendor/text!shaders/example.frag",
+    "libs/vendor/text!shaders/tile.frag",
     "libs/vendor/text!shaders/simplex-noise.glsl",
     "libs/tileNode",
     "libs/chunkedPlane",
@@ -15,7 +15,7 @@ require([
     "libs/planetControls"
 ],
 
-function (tileVert, exampleFrag, simplexNoise) {
+function (tileVert, tileFrag, simplexNoise) {
   var camera, controls, renderer, scene;
   var rendererStats;
   var coordinateAxes, chunkedCubeSphere;
@@ -39,6 +39,8 @@ function (tileVert, exampleFrag, simplexNoise) {
 
     scene = new THREE.Scene();
 
+    var texture = THREE.ImageUtils.loadTexture("textures/equirectangular-earth.jpg");
+
     /**
      * Scene objects
      */
@@ -48,9 +50,10 @@ function (tileVert, exampleFrag, simplexNoise) {
       camera: camera,
       shaders: {
         vert: tileVert,
-        frag: exampleFrag
+        frag: tileFrag
       },
-      scene: scene
+      scene: scene,
+      texture: texture
     });
     scene.add(chunkedCubeSphere);
 
@@ -88,17 +91,6 @@ function (tileVert, exampleFrag, simplexNoise) {
     document.body.appendChild(rendererStats.domElement);
   }
 
-  function updateCameraSpeed() {
-    var camToOrigin = camera.position.length();
-    var camToSurface = camToOrigin - EARTH_RADIUS;
-    // console.log("camera to surface: ", camToSurface);
-
-    var zoomSpeed = Math.abs(Math.atan(camToSurface/EARTH_RADIUS));
-
-    controls.setZoomSpeed(zoomSpeed);
-    controls.setRotateSpeed(zoomSpeed);
-  }
-
   function animate() {
     var dt = new Date() - t;
     t = new Date();
@@ -110,7 +102,6 @@ function (tileVert, exampleFrag, simplexNoise) {
     rendererStats.update(renderer);
     renderer.render(scene, camera);
 
-    // updateCameraSpeed();
     controls.update();
 
     requestAnimationFrame(animate);

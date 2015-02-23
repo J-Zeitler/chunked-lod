@@ -33,7 +33,7 @@ PlanetControls.prototype.init = function () {
 };
 
 PlanetControls.prototype.update = function () {
-  this.orbitControls.rotateSpeed = this.orbitControls.rotateSpeed;
+  this.updateOrbitSpeed();
 
   this.cube.rotation.copy(this.orbitCam.rotation);
   this.cube.position.copy(this.orbitCam.position);
@@ -43,6 +43,14 @@ PlanetControls.prototype.update = function () {
   } else {
     this.orbitControls.update();
   }
+};
+
+PlanetControls.prototype.updateOrbitSpeed = function () {
+  var camToSurface = this.camera.position.length();
+
+  var speed = Math.abs(Math.atan(camToSurface/this.planetRadius));
+
+  this.orbitControls.rotateSpeed = speed;
 };
 
 PlanetControls.prototype.getCameraPlanetProjection = function (cam) {

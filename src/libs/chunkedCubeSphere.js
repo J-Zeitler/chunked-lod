@@ -9,6 +9,7 @@ var ChunkedCubeSphere = function (opts) {
   this.radius = opts.scale || 1;
   this.maxLevels = opts.maxLevels || 32;
 
+  this.texture = opts.texture;
   this.vertShader = opts.shaders.vert;
   this.fragShader = opts.shaders.frag;
 
@@ -18,6 +19,7 @@ var ChunkedCubeSphere = function (opts) {
   this.widthDir = opts.widthDir || new THREE.Vector3(1, 0, 0);
   this.heightDir = opts.heightDir || new THREE.Vector3(0, 1, 0);
 
+  // debug
   this.debug = new THREE.Object3D();
   this.debug.name = "debug";
   opts.scene.add(this.debug);
@@ -112,7 +114,8 @@ ChunkedCubeSphere.prototype.addTile = function (tile) {
   if (this.vertShader && this.fragShader) {
     var tileUniforms = {
       worldScale: {type: "f", value: this.radius},
-      level: {type: "f", value: tile.level}
+      level: {type: "f", value: tile.level},
+      texMap: {type: "t", value: this.texture}
     };
 
     tileMaterial = new THREE.ShaderMaterial({
@@ -121,8 +124,8 @@ ChunkedCubeSphere.prototype.addTile = function (tile) {
       fragmentShader: this.fragShader
     });
 
-    tileMaterial.wireframe = true;
-    tileMaterial.wireframeLinewidth = 1.0;
+    // tileMaterial.wireframe = true;
+    // tileMaterial.wireframeLinewidth = 1.0;
   } else {
     tileMaterial = new THREE.MeshBasicMaterial({wireframe: true, color: 'red'});
   }
@@ -234,19 +237,22 @@ ChunkedCubeSphere.prototype.isTileInFrustum = function (tile) {
   this.camera.updateMatrixWorld();
   this.camera.matrixWorldInverse.getInverse(this.camera.matrixWorld);
 
-  var tileCorners = [];
-  tile.corners.forEach(function (c) {
-    var tilePos = c.clone().applyMatrix4(tile.transform);
-    var spherePos = this._cube2sphere(tilePos);
-    tileCorners.push(spherePos.applyMatrix4(this.matrix));
-  }, this);
+  // same transform as above
+  var tileGeometry = new THREE.PlaneBufferGeometry(tile.scale, tile.scale, 1, 1);
+  var translation = new THREE.Matrix4().makeTranslation(
+    tile.position.x,
+    tile.position.y,
+    tile.position.z
+  );
+  tileGeometry.applyMatrix(translation);
+  tileGeometry.applyMatrix(tile.transform);
+  this._spherifyVerts(tileGeometry);
 
   var frustum = new THREE.Frustum();
   frustum.setFromMatrix(new THREE.Matrix4().multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse));
 
-  for (var i = 0 ; i < tileCorners.length; i++) {
-    if (frustum.containsPoint(tileCorners[i])) return true;
-  }
+  tileGeometry.computeBoundingBox();
+  if (frustum.intersectsBox(tileGeometry.boundingBox)) return true;
 
   // Outside frustum
   // tileCorners.forEach(function (c) {

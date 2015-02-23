@@ -3,7 +3,7 @@ precision mediump float;
 uniform sampler2D heightmap;
 uniform float worldScale;
 
-// varying vec3 pos;
+varying vec3 pos;
 // varying vec2 uVu;
 
 /**
@@ -37,6 +37,8 @@ void main() {
   // gl_Position = projectionMatrix *
   //               viewMatrix *
   //               vec4(pos, 1.0);
+
+  pos = (modelMatrix*vec4(position, 1.0)).xyz;
 
   /**
    * Pass thorugh
