@@ -22,7 +22,7 @@ function (tileVert, tileFrag, simplexNoise) {
   var raycaster;
 
   var t = new Date();
-  var EARTH_RADIUS = 1; //6371000;
+  var EARTH_RADIUS = 6371000;
 
   init();
   animate();
@@ -99,7 +99,7 @@ function (tileVert, tileFrag, simplexNoise) {
       chunkedCubeSphere.update();
     }
 
-    rendererStats.update(renderer);
+    rendererStats.update(renderer, chunkedCubeSphere);
     renderer.render(scene, camera);
 
     controls.update();

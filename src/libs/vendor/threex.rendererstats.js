@@ -29,7 +29,7 @@ THREEx.RendererStats  = function (){
   msDiv.appendChild( msText );
 
   var msTexts = [];
-  var nLines  = 9;
+  var nLines  = 11;
   for(var i = 0; i < nLines; i++){
     msTexts[i]  = document.createElement( 'div' );
     msTexts[i].style.cssText = 'color:#f00;background-color:#311;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px';
@@ -42,7 +42,7 @@ THREEx.RendererStats  = function (){
   return {
     domElement: container,
 
-    update: function(webGLRenderer){
+    update: function(webGLRenderer, cubeSphere){
       // sanity check
       console.assert(webGLRenderer instanceof THREE.WebGLRenderer)
 
@@ -51,6 +51,9 @@ THREEx.RendererStats  = function (){
       lastTime  = Date.now()
 
       var i = 0;
+      msTexts[i++].textContent = "== Camera =====";
+      msTexts[i++].textContent = "Height: "  + parseFloat(this.getCameraHeight(cubeSphere)).toFixed(0);
+
       msTexts[i++].textContent = "== Memory =====";
       msTexts[i++].textContent = "Programs: " + webGLRenderer.info.memory.programs;
       msTexts[i++].textContent = "Geometries: "+webGLRenderer.info.memory.geometries;
@@ -61,6 +64,11 @@ THREEx.RendererStats  = function (){
       msTexts[i++].textContent = "Vertices: " + webGLRenderer.info.render.vertices;
       msTexts[i++].textContent = "Faces: "  + webGLRenderer.info.render.faces;
       msTexts[i++].textContent = "Points: " + webGLRenderer.info.render.points;
+    },
+
+    getCameraHeight: function (cubeSphere) {
+      return cubeSphere.cameraWorldPosition.clone().length() - cubeSphere.radius;
     }
+
   }
 };

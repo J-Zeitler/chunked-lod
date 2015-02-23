@@ -76,7 +76,7 @@ ChunkedCubeSphere.prototype.addSide = function (trans, rot) {
     parent: null,
     master: this,
     level: 0,
-    ulrichFactor: 0.01*this.radius*2,
+    ulrichFactor: 0.008*this.radius,
     transform: transform
   });
 
@@ -126,8 +126,8 @@ ChunkedCubeSphere.prototype.addTile = function (tile) {
       fragmentShader: this.fragShader
     });
 
-    // tileMaterial.wireframe = true;
-    // tileMaterial.wireframeLinewidth = 1.0;
+    tileMaterial.wireframe = true;
+    tileMaterial.wireframeLinewidth = 1.0;
   } else {
     tileMaterial = new THREE.MeshBasicMaterial({wireframe: true, color: 'red'});
   }
