@@ -65,6 +65,10 @@ TileNode.prototype.isVisible = function () {
   return this.isWithinHorizon() && this.isInFrustum();
 };
 
+/**
+ * Plane test horizon culling:
+ * http://cesiumjs.org/2013/04/25/Horizon-culling/
+ */
 TileNode.prototype.isWithinHorizon = function () {
   var r = this.master.getRadius();
   var camToTile = this.master.getCamToTile(this);
