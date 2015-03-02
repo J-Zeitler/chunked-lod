@@ -45,7 +45,7 @@ function (tileVert, tileFrag, simplexNoise) {
      * Scene objects
      */
     chunkedCubeSphere = new ChunkedCubeSphere({
-      scale: EARTH_RADIUS,
+      radius: EARTH_RADIUS,
       tileRes: 8,
       camera: camera,
       shaders: {

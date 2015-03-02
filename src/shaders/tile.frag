@@ -3,7 +3,7 @@ precision mediump float;
 uniform float level;
 uniform sampler2D texMap;
 
-varying vec3 pos;
+// varying vec3 pos;
 
 #define PI 3.14159265359
 #define divPI 0.31830988618

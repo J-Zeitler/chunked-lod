@@ -6,7 +6,7 @@ var ChunkedCubeSphere = function (opts) {
   this.tileRes = opts.tileRes || 16;
   this.maxScreenSpaceError = opts.maxScreenSpaceError || 2;
   this.camera = opts.camera;
-  this.radius = opts.scale || 1;
+  this.radius = opts.radius || 1;
   this.maxLevels = opts.maxLevels || 32;
 
   this.texture = opts.texture;
