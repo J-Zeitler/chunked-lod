@@ -7,9 +7,9 @@ require([
     "libs/vendor/text!shaders/tile.frag",
     "libs/vendor/text!shaders/simplex-noise.glsl",
     "libs/tileNode",
-    "libs/chunkedPlane",
-    "libs/chunkedCube",
+    "libs/sphereTile",
     "libs/chunkedCubeSphere",
+    "libs/chunkedECPSphere",
     "libs/coordinateAxes",
     "libs/vendor/orbitControls",
     "libs/planetControls"
@@ -22,7 +22,7 @@ function (tileVert, tileFrag, simplexNoise) {
   var raycaster;
 
   var t = new Date();
-  var EARTH_RADIUS = 6371000;
+  var EARTH_RADIUS = 1; //6371000;
 
   init();
   animate();
@@ -44,9 +44,9 @@ function (tileVert, tileFrag, simplexNoise) {
     /**
      * Scene objects
      */
-    chunkedCubeSphere = new ChunkedCubeSphere({
+    chunkedCubeSphere = new ChunkedECPSphere({
       radius: EARTH_RADIUS,
-      tileRes: 8,
+      tileRes: 5,
       camera: camera,
       shaders: {
         vert: tileVert,
