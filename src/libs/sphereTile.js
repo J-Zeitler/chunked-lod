@@ -8,7 +8,6 @@ var SphereTile = function (opts) {
   this.level = opts.level;
   this.ulrichFactor = opts.ulrichFactor;
   this.tileLoader = opts.tileLoader;
-  this.radius = opts.radius || 1;
 
   this.virtualEarthIndex = opts.virtualEarthIndex || 'a0';
 
@@ -37,10 +36,12 @@ var SphereTile = function (opts) {
 };
 
 SphereTile.prototype.polarToCartesian = function (phi, theta) {
+  var r = this.master.getRadius();
+
   return new THREE.Vector3(
-    this.radius*Math.sin(theta)*Math.cos(phi),
-    this.radius*Math.sin(theta)*Math.sin(phi),
-    this.radius*Math.cos(theta)
+    r*Math.sin(theta)*Math.cos(phi),
+    r*Math.sin(theta)*Math.sin(phi),
+    r*Math.cos(theta)
   );
 };
 

@@ -55,8 +55,7 @@ ChunkedECPSphere.prototype.addSide = function (anchor, extent) {
     parent: null,
     master: this,
     level: 0,
-    ulrichFactor: 0.008*this.radius,
-    radius: this.radius
+    ulrichFactor: 0.008*this.radius
   });
 
   this.sides.push(rootTile);
