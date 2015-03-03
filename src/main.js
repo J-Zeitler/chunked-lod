@@ -6,6 +6,10 @@ require([
     "libs/vendor/text!shaders/tile.vert",
     "libs/vendor/text!shaders/tile.frag",
     "libs/vendor/text!shaders/simplex-noise.glsl",
+    "mapboxSettings",
+    "virtualEarthSettings",
+    "onterraSettings",
+    "libs/tileLoader",
     "libs/tileNode",
     "libs/sphereTile",
     "libs/chunkedCubeSphere",
@@ -39,7 +43,10 @@ function (tileVert, tileFrag, simplexNoise) {
 
     scene = new THREE.Scene();
 
-    var texture = THREE.ImageUtils.loadTexture("textures/equirectangular-earth.jpg");
+    var tileLoader = new TileLoader({
+      service: virtualEarthSettings,
+      layer: 'mapbox.outdoors'
+    });
 
     /**
      * Scene objects
@@ -52,8 +59,7 @@ function (tileVert, tileFrag, simplexNoise) {
         vert: tileVert,
         frag: tileFrag
       },
-      scene: scene,
-      texture: texture
+      tileLoader: tileLoader
     });
     scene.add(chunkedCubeSphere);
 
@@ -69,7 +75,6 @@ function (tileVert, tileFrag, simplexNoise) {
     /**
      * Camera controls
      */
-    // controls = new THREE.OrbitControls(camera);
     controls = new PlanetControls({
       camera: camera,
       planetRadius: EARTH_RADIUS,

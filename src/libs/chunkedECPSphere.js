@@ -9,7 +9,8 @@ var ChunkedECPSphere = function (opts) {
   this.radius = opts.radius || 1;
   this.maxLevels = opts.maxLevels || 32;
 
-  this.texture = opts.texture; // Use fixed texture
+  this.texture = opts.texture; // Use a static texture
+  this.tileLoader = opts.tileLoader // ... or dynamic ones
 
   this.vertShader = opts.shaders.vert;
   this.fragShader = opts.shaders.frag;
@@ -26,36 +27,42 @@ var ChunkedECPSphere = function (opts) {
 ChunkedECPSphere.prototype = Object.create(THREE.Object3D.prototype);
 
 /**
- * Init as an "8 sided sphere" (EPSG:4326)
+ * Init as an "2 sided sphere" (~ EPSG:4326)
  *
  *                     0,90
  *        +------+------+------+------+
- *        |  A   |  B   |  C   |  D   |
- *        |      |      |      |      |
- * -180,0 +------+-----0,0-----+------+ 180,0
- *        |  E   |  F   |  G   |  H   |
- *        |      |      |      |      |
+ *        |    top(a0)  |    top(a1)  |
+ *        |             |             |
+ * -180,0 +.... L .... 0,0 .... R ....+ 180,0
+ *        |             |             |
+ *        |  bottom(a2) |  bottom(a3) |
  *        +------+------+------+------+
  *                     0,-90
  */
 ChunkedECPSphere.prototype.initSides = function () {
-  for (var i = -Math.PI; i < Math.PI; i += Math.PI*0.5) {
-    //Upper hemisphere
-    this.addSide(new THREE.Vector2(i, 0), Math.PI*0.5);
+    //L
+    this.addSide(new THREE.Vector2(-Math.PI, -Math.PI*0.5), Math.PI, {
+      top: 'a0',
+      bottom: 'a2'
+    });
 
-    //Lower hemisphere
-    this.addSide(new THREE.Vector2(i, -Math.PI*0.5), Math.PI*0.5);
-  }
+    //R
+    this.addSide(new THREE.Vector2(0, -Math.PI*0.5), Math.PI, {
+      top: 'a1',
+      bottom: 'a3'
+    });
 };
 
-ChunkedECPSphere.prototype.addSide = function (anchor, extent) {
+ChunkedECPSphere.prototype.addSide = function (anchor, extent, virtualEarthIndex) {
   var rootTile = new SphereTile({
     anchor: anchor,
     extent: extent,
     parent: null,
     master: this,
     level: 0,
-    ulrichFactor: 0.008*this.radius
+    ulrichFactor: 0.008*this.radius,
+    virtualEarthIndex: virtualEarthIndex,
+    tileLoader: this.tileLoader
   });
 
   this.sides.push(rootTile);
@@ -86,7 +93,7 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
   var tileUniforms = {
     worldScale: {type: "f", value: this.scaleFactor*0.5},
     level: {type: "f", value: tile.level},
-    // tileTex: {type: "t", value: tile.texture},
+    tileTex: {type: "t", value: tile.texture},
     // topLeft: {type: "v2", value: topLeft},
     // tileScale: {type: "f", value: tile.scale},
     // opacity: {type: "f", value: 0.0}
@@ -100,8 +107,8 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
     depthTest: false
   });
 
-  tileMaterial.wireframe = true;
-  tileMaterial.wireframeLinewidth = 1.0;
+  // tileMaterial.wireframe = true;
+  // tileMaterial.wireframeLinewidth = 1.0;
 
   var tileMesh = new THREE.Mesh(
     tileGeometry,

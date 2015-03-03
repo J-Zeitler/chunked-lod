@@ -9,7 +9,9 @@ var SphereTile = function (opts) {
   this.ulrichFactor = opts.ulrichFactor;
   this.tileLoader = opts.tileLoader;
 
-  this.virtualEarthIndex = opts.virtualEarthIndex || 'a0';
+  this.virtualEarthIndex = opts.virtualEarthIndex;
+
+  // console.log(this.virtualEarthIndex);
 
   this.col = opts.col || 0;
   this.row = opts.row || 0;
@@ -22,13 +24,7 @@ var SphereTile = function (opts) {
   this.anchorPhi = this.anchor.x + Math.PI; // (-PI, PI) to (0, 2*PI)
   this.anchorTheta = Math.PI*0.5 - this.anchor.y; // (PI/2, -PI/2) to (0, PI)
 
-  // Calculate corners
-  this.corners = [
-    this.polarToCartesian(this.anchorPhi, this.anchorTheta), // BL
-    this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta), // BR
-    this.polarToCartesian(this.anchorPhi, this.anchorTheta - this.extent), // TL
-    this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta - this.extent) // TR
-  ];
+  this.calculateCorners();
 
   this.center = this.getCenter();
 
@@ -43,6 +39,10 @@ SphereTile.prototype.polarToCartesian = function (phi, theta) {
     r*Math.sin(theta)*Math.sin(phi),
     r*Math.cos(theta)
   );
+};
+
+SphereTile.prototype.radiansToDeg = function (rad) {
+  return rad*180/Math.PI;
 };
 
 /**
@@ -85,21 +85,29 @@ SphereTile.prototype.getGeometry = function () {
   var res = this.master.getTileRes();
 
   // Positions
-  var scale = this.extent/(res - 1);
+  var resMinus1 = res - 1;
+  var scale = this.extent/resMinus1;
   var positions = new Float32Array(res*res*3);
+  var uvs = new Float32Array(res*res*2);
   for (var y = 0; y < res; y++) {
     for (var x = 0; x < res; x++) {
-      var offset = (y*res + x)*3;
+      var posOffset = (y*res + x)*3;
       var phi = this.anchorPhi + x*scale;
       var theta = this.anchorTheta - y*scale;
 
       var pos = this.polarToCartesian(phi, theta);
 
-      positions[offset] = pos.x;
-      positions[offset + 1] = pos.y;
-      positions[offset + 2] = pos.z;
+      positions[posOffset] = pos.x;
+      positions[posOffset + 1] = pos.y;
+      positions[posOffset + 2] = pos.z;
+
+      var uvOffset = (y*res + x)*2;
+      uvs[uvOffset] = x/resMinus1;
+      uvs[uvOffset + 1] = y/resMinus1;
     }
   }
+
+  // console.log(uvs);
 
   // Indices
   var segs = (res - 1)*(res - 1);
@@ -125,13 +133,12 @@ SphereTile.prototype.getGeometry = function () {
     }
   }
 
-  console.log();
-
   var indices = new Uint16Array(segs*3*2);
   indices.set(indexData);
 
   this.geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
   this.geometry.addAttribute('index', new THREE.BufferAttribute(indices, 1));
+  this.geometry.addAttribute('uv', new THREE.BufferAttribute(uvs, 2));
 
   this.geometry.computeBoundingBox();
   return this.geometry;
@@ -139,6 +146,35 @@ SphereTile.prototype.getGeometry = function () {
 
 SphereTile.prototype.getBoundingBox = function () {
   return this.getGeometry().boundingBox;
+};
+
+SphereTile.prototype.calculateCorners = function () {
+  this.corners = [
+    this.polarToCartesian(this.anchorPhi, this.anchorTheta), // BL
+    this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta), // BR
+    this.polarToCartesian(this.anchorPhi, this.anchorTheta - this.extent), // TL
+    this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta - this.extent) // TR
+  ];
+
+  this.SWNE = [
+    this.anchor.clone(),
+    this.anchor.clone().addScalar(this.extent)
+  ];
+};
+
+SphereTile.prototype.getCornersDeg = function () {
+  var degSWNE = [
+    new THREE.Vector2(
+      this.radiansToDeg(this.SWNE[0].x),
+      this.radiansToDeg(this.SWNE[0].y)
+    ),
+    new THREE.Vector2(
+      this.radiansToDeg(this.SWNE[1].x),
+      this.radiansToDeg(this.SWNE[1].y)
+    )
+  ];
+
+  return degSWNE;
 };
 
 /**
@@ -256,28 +292,40 @@ SphereTile.prototype.split = function () {
   opts.anchor = this.anchor.clone();
   opts.col = nextCol;
   opts.row = nextRow + 1;
-  opts.virtualEarthIndex = this.virtualEarthIndex + '2';
+  opts.virtualEarthIndex = {
+    top: this.virtualEarthIndex.bottom + '0',
+    bottom: this.virtualEarthIndex.bottom + '2'
+  };
   this.bottomLeft = new SphereTile(opts);
 
   // BR
   opts.anchor = new THREE.Vector2(this.anchor.x + nextExtent, this.anchor.y);
   opts.col = nextCol + 1;
   opts.row = nextRow + 1;
-  opts.virtualEarthIndex = this.virtualEarthIndex + '3';
+  opts.virtualEarthIndex = {
+    top: this.virtualEarthIndex.bottom + '1',
+    bottom: this.virtualEarthIndex.bottom + '3'
+  };
   this.bottomRight = new SphereTile(opts);
 
   // TL
   opts.anchor = new THREE.Vector2(this.anchor.x, this.anchor.y + nextExtent);
   opts.col = nextCol;
   opts.row = nextRow;
-  opts.virtualEarthIndex = this.virtualEarthIndex + '0';
+  opts.virtualEarthIndex = {
+    top: this.virtualEarthIndex.top + '0',
+    bottom: this.virtualEarthIndex.top + '2'
+  };
   this.topLeft = new SphereTile(opts);
 
   // TR
   opts.anchor = new THREE.Vector2(this.anchor.x + nextExtent, this.anchor.y + nextExtent);
   opts.col = nextCol + 1;
   opts.row = nextRow;
-  opts.virtualEarthIndex = this.virtualEarthIndex + '1';
+  opts.virtualEarthIndex = {
+    top: this.virtualEarthIndex.top + '1',
+    bottom: this.virtualEarthIndex.top + '3'
+  };
   this.topRight = new SphereTile(opts);
 
   this.isSplit = true;
@@ -304,18 +352,18 @@ SphereTile.prototype.merge = function () {
 };
 
 SphereTile.prototype.addToMaster = function () {
-  // this.loading = true;
-  // var texUrl = this.tileLoader.loadTileTexture(this, function (image) {
-  //   if (image) {
-  //     this.texture = THREE.ImageUtils.loadTexture(image);
+  this.loading = true;
+  var texUrl = this.tileLoader.loadTileTexture(this, function (image) {
+    if (image) {
+      this.texture = THREE.ImageUtils.loadTexture(image);
 
-  //     this.master.addTile(this);
-  //     this.added = true;
-  //   }
-  //   this.loading = false;
-  // }, this);
-  this.master.addTile(this);
-  this.added = true;
+      this.master.addTile(this);
+      this.added = true;
+    }
+    this.loading = false;
+  }, this);
+  // this.master.addTile(this);
+  // this.added = true;
 };
 
 /**
@@ -323,9 +371,7 @@ SphereTile.prototype.addToMaster = function () {
  * TODO: ensure remove is successful
  */
 SphereTile.prototype.removeFromMaster = function () {
-  // if (this.tileLoader.isLoading(this)) {
-  //   this.tileLoader.abortLoading(this);
-  // }
+  this.tileLoader.abortLoading(this);
   this.master.removeTile(this);
   this.added = false;
 };
