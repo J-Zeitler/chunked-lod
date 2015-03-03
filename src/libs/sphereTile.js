@@ -27,8 +27,8 @@ var SphereTile = function (opts) {
   this.corners = [
     this.polarToCartesian(this.anchorPhi, this.anchorTheta), // BL
     this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta), // BR
-    this.polarToCartesian(this.anchorPhi, this.anchorTheta + this.extent), // TL
-    this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta + this.extent) // TR
+    this.polarToCartesian(this.anchorPhi, this.anchorTheta - this.extent), // TL
+    this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta - this.extent) // TR
   ];
 
   this.center = this.getCenter();
@@ -48,35 +48,26 @@ SphereTile.prototype.polarToCartesian = function (phi, theta) {
  * Check visibility, splitting and merging
  */
 SphereTile.prototype.update = function () {
-  var childrenAdded = this.isChildrenAdded();
-
-  if (this.isVisible()) {
-    this.visible = true;
+   if (this.isVisible()) {
     if (this.shouldSplit()) {
       this.split();
+      this.removeFromMaster();
       this.update();
     } else if (this.shouldMerge()) {
       this.merge();
       this.addToMaster();
       this.update();
     } else if (this.isSplit) {
-      if (this.added && childrenAdded) {
-        this.removeFromMaster();
-      }
       this.updateChildren();
-    } else if (!this.added && !this.loading) {
+    } else if (!this.added) {
       this.addToMaster();
-      this.update();
     }
-    return;
-  }
-  if (this.added) {
-    // if (this.isSplit) {
-    //   this.updateChildren();
-    // }
+  } else if (this.isSplit) {
+    // TODO: revisit this
+    this.updateChildren();
+  } else {
     this.removeFromMaster();
   }
-  this.visible = false;
 };
 
 SphereTile.prototype.updateChildren = function () {
@@ -85,10 +76,6 @@ SphereTile.prototype.updateChildren = function () {
   this.topLeft.update();
   this.topRight.update();
 };
-
-// SphereTile.prototype.getTexture = function () {
-//   if (this.texture) return this.texture;
-// };
 
 SphereTile.prototype.getGeometry = function () {
   if (this.geometry) return this.geometry;
@@ -169,7 +156,6 @@ SphereTile.prototype.isChildrenAdded = function () {
 };
 
 SphereTile.prototype.isVisible = function () {
-  // return true;
   return this.isInFrustum() && this.isWithinHorizon();
 };
 
@@ -244,13 +230,21 @@ SphereTile.prototype.split = function () {
 
   var nextExtent = this.extent*0.5;
 
+  /**
+   * TODO: Continue researching how to modify splitting near poles
+   */
+  var centerLat = this.anchor.y + this.extent*0.5;
+  var x = centerLat/Math.PI;
+  var ulrichModifier = Math.pow(Math.E, -12.5*x*x);
+  // console.log("mod: ", ulrichModifier);
+
   // Shared opts
   var opts = {
     extent: nextExtent,
     parent: this,
     master: this.master,
     level: this.level + 1,
-    ulrichFactor: this.ulrichFactor*0.5,
+    ulrichFactor: this.ulrichFactor*0.5, //*ulrichModifier,
     tileLoader: this.tileLoader
   }
 

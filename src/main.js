@@ -46,7 +46,7 @@ function (tileVert, tileFrag, simplexNoise) {
      */
     chunkedCubeSphere = new ChunkedECPSphere({
       radius: EARTH_RADIUS,
-      tileRes: 5,
+      tileRes: 8,
       camera: camera,
       shaders: {
         vert: tileVert,
