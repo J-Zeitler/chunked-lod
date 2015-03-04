@@ -27,7 +27,7 @@ var ChunkedECPSphere = function (opts) {
 ChunkedECPSphere.prototype = Object.create(THREE.Object3D.prototype);
 
 /**
- * Init as an "2 sided sphere" (~ EPSG:4326)
+ * Init as a "2 sided sphere" (~ EPSG:4326)
  *
  *                     0,90
  *        +------+------+------+------+

@@ -107,8 +107,6 @@ SphereTile.prototype.getGeometry = function () {
     }
   }
 
-  // console.log(uvs);
-
   // Indices
   var segs = (res - 1)*(res - 1);
   var indexData = [];
