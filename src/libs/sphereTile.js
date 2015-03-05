@@ -11,8 +11,6 @@ var SphereTile = function (opts) {
 
   this.virtualEarthIndex = opts.virtualEarthIndex;
 
-  // console.log(this.virtualEarthIndex);
-
   this.col = opts.col || 0;
   this.row = opts.row || 0;
 
@@ -84,6 +82,14 @@ SphereTile.prototype.getGeometry = function () {
   this.geometry = new THREE.BufferGeometry();
   var res = this.master.getTileRes();
 
+  var latMin = this.anchor.y;
+  var latMax = this.anchor.y + this.extent;
+  mercatorMin = SphereTile.geodeticLatitudeToMercatorAngle(latMin);
+  mercatorMax = SphereTile.geodeticLatitudeToMercatorAngle(latMax);
+
+  // console.log("Lat: ", {min: latMin, max: latMax},
+  //             "\nMercator: ", {min: mercatorMin, max: mercatorMax});
+
   // Positions
   var resMinus1 = res - 1;
   var scale = this.extent/resMinus1;
@@ -103,6 +109,9 @@ SphereTile.prototype.getGeometry = function () {
 
       var uvOffset = (y*res + x)*2;
       uvs[uvOffset] = x/resMinus1;
+
+      var defaultV = y/resMinus1; // [0, 1]
+
       uvs[uvOffset + 1] = y/resMinus1;
     }
   }
@@ -383,4 +392,26 @@ SphereTile.prototype.destroy = function () {
   } else {
     this.removeFromMaster();
   }
+};
+
+
+/**
+ * Static
+ */
+SphereTile.maxLatRadians = 1.484422;
+SphereTile.maxLatDegrees = 85.05113;
+
+/**
+ * Credits to Cesium WebMercatorProjection
+ * https://github.com/AnalyticalGraphicsInc/cesium/blob/5660d848a102978b30d1d72409ea2cf50aafc206/Source/Core/WebMercatorProjection.js
+ */
+SphereTile.geodeticLatitudeToMercatorAngle = function (lat) {
+  if (lat > SphereTile.maxLatRadians) {
+    lat = SphereTile.maxLatRadians;
+  } else if (lat < -SphereTile.maxLatRadians) {
+    lat = -SphereTile.maxLatRadians;
+  }
+
+  var sinLatitude = Math.sin(lat);
+  return 0.5*Math.log((1.0 + sinLatitude)/(1.0 - sinLatitude));
 };

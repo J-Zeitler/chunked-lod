@@ -6,14 +6,16 @@ var PlanetControls = function (opts) {
   this.tiltMode = false;
 
   this.orbitCam = this.camera.clone();
+  // Assume +Z is up for planets
+  this.orbitCam.up.set(0, 0, 1);
 
+  // Lock camera lookAt to surface point
   this.cube = opts.cube;
   this.cube.add(this.camera);
 
   this.orbitControls = new THREE.OrbitControls(this.orbitCam);
   this.orbitControls.noZoom = true;
   this.tiltControls = new THREE.OrbitControls(this.camera);
-  this.tiltControls.enabled = false;
 
   this.tiltControls.minPolarAngle = 0.1;
   this.tiltControls.maxPolarAngle = Math.PI*0.9;
@@ -27,6 +29,12 @@ PlanetControls.prototype.init = function () {
   // lock orbit cam to planet surface
   var proj = this.getCameraPlanetProjection(this.orbitCam).multiplyScalar(1.00001);
   this.orbitCam.position.set(proj.x, proj.y, proj.z);
+
+  // Reset camera position to default +Z and propagate through tiltControls
+  var distFromSurface = this.camera.position.length() - proj.length();
+  this.camera.position.set(0, 0, distFromSurface);
+  this.tiltControls.update();
+  this.tiltControls.enabled = false;
 
   window.addEventListener('keydown', this.handleKeyDown.bind(this), false);
   window.addEventListener('keyup', this.handleKeyUp.bind(this), false);

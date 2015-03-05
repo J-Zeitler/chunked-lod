@@ -74,6 +74,10 @@ TileLoader.prototype.loadTileTexture = function (tile, callback, ctx) {
 
 TileLoader.prototype.loadEPSG4326TileTexture = function (tile, callback, ctx) {
   var url = this.getUrl(tile);
+  if (this.serviceType === 'onterra') {
+    callback.call(ctx, url);
+    return;
+  };
 
   var canvas = document.createElement("canvas");
   var canvasContext = canvas.getContext("2d");

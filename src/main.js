@@ -26,7 +26,7 @@ function (tileVert, tileFrag, simplexNoise) {
   var raycaster;
 
   var t = new Date();
-  var EARTH_RADIUS = 6371000;
+  var EARTH_RADIUS = 1; //6371000;
 
   init();
   animate();
@@ -38,11 +38,12 @@ function (tileVert, tileFrag, simplexNoise) {
      * Scene + camera
      */
     camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.00001*EARTH_RADIUS, EARTH_RADIUS*100);
-    camera.position.set(0, 0, EARTH_RADIUS*2);
+    camera.position.set(-EARTH_RADIUS*3, 0, 0);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     scene = new THREE.Scene();
 
+    THREE.ImageUtils.crossOrigin = '';
     var tileLoader = new TileLoader({
       service: virtualEarthSettings,
       layer: 'mapbox.outdoors'
