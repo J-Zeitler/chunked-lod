@@ -70,7 +70,7 @@ function (tileVert, tileFrag, simplexNoise) {
     var geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
     var material = new THREE.MeshBasicMaterial({color: 0x00ff00});
     var cube = new THREE.Mesh( geometry, material );
-    cube.visible = false;
+    // cube.visible = false;
     scene.add(cube);
 
     /**

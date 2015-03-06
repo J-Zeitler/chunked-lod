@@ -17,10 +17,12 @@ var PlanetControls = function (opts) {
   this.orbitControls.noZoom = true;
   this.tiltControls = new THREE.OrbitControls(this.camera);
 
-  this.tiltControls.minPolarAngle = 0.1;
+  this.tiltControls.minPolarAngle = Math.PI*0.1;
   this.tiltControls.maxPolarAngle = Math.PI*0.9;
-  this.tiltControls.minAzimuthAngle = - Math.PI*0.4;
+  this.tiltControls.minAzimuthAngle = -Math.PI*0.4;
   this.tiltControls.maxAzimuthAngle = Math.PI*0.4;
+
+  this.tiltCamDefaultLookDir = new THREE.Vector3(0, 0, 1);
 
   this.init();
 };
@@ -32,7 +34,7 @@ PlanetControls.prototype.init = function () {
 
   // Reset camera position to default +Z and propagate through tiltControls
   var distFromSurface = this.camera.position.length() - proj.length();
-  this.camera.position.set(0, 0, distFromSurface);
+  this.camera.position.copy(this.tiltCamDefaultLookDir.clone().multiplyScalar(distFromSurface));
   this.tiltControls.update();
   this.tiltControls.enabled = false;
 

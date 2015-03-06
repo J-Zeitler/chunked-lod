@@ -107,8 +107,8 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
     depthTest: false
   });
 
-  // tileMaterial.wireframe = true;
-  // tileMaterial.wireframeLinewidth = 1.0;
+  tileMaterial.wireframe = true;
+  tileMaterial.wireframeLinewidth = 1.0;
 
   var tileMesh = new THREE.Mesh(
     tileGeometry,
