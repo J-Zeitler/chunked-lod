@@ -28,8 +28,8 @@ function (tileVert, tileFrag, simplexNoise) {
   var t = new Date();
   var EARTH_RADIUS = 1; //6371000;
 
-  init();
-  animate();
+  // init();
+  // animate();
 
   function init() {
     System.logSystemInfo();
