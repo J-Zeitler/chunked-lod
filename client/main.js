@@ -10,6 +10,7 @@ require([
     "virtualEarthSettings",
     "onterraSettings",
     "libs/tileLoader",
+    "libs/scissTileLoader",
     "libs/tileNode",
     "libs/sphereTile",
     "libs/chunkedCubeSphere",
@@ -26,10 +27,10 @@ function (tileVert, tileFrag, simplexNoise) {
   var raycaster;
 
   var t = new Date();
-  var EARTH_RADIUS = 1; //6371000;
+  var EARTH_RADIUS = 6371000;
 
-  // init();
-  // animate();
+  init();
+  animate();
 
   function init() {
     System.logSystemInfo();
@@ -44,9 +45,11 @@ function (tileVert, tileFrag, simplexNoise) {
     scene = new THREE.Scene();
 
     THREE.ImageUtils.crossOrigin = '';
-    var tileLoader = new TileLoader({
-      service: virtualEarthSettings,
-      layer: 'mapbox.outdoors'
+    var provider = new ScissWMSProvider();
+
+    var tileLoader = new ScissTileLoader({
+      provider: provider,
+      layer: 'Earth_Global_Mosaic_Pan_Sharpened'
     });
 
     /**
@@ -54,7 +57,7 @@ function (tileVert, tileFrag, simplexNoise) {
      */
     chunkedCubeSphere = new ChunkedECPSphere({
       radius: EARTH_RADIUS,
-      tileRes: 16,
+      tileRes: 32,
       camera: camera,
       shaders: {
         vert: tileVert,
@@ -70,7 +73,7 @@ function (tileVert, tileFrag, simplexNoise) {
     var geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
     var material = new THREE.MeshBasicMaterial({color: 0x00ff00});
     var cube = new THREE.Mesh( geometry, material );
-    // cube.visible = false;
+    cube.visible = false;
     scene.add(cube);
 
     /**

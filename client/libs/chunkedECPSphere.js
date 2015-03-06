@@ -20,52 +20,40 @@ var ChunkedECPSphere = function (opts) {
 
   this.frustum = new THREE.Frustum();
 
-  this.sides = [];
-  this.initSides();
+  this.baseTiles = [];
+  this.initBaseTiles();
 };
 
 ChunkedECPSphere.prototype = Object.create(THREE.Object3D.prototype);
 
-/**
- * Init as a "2 sided sphere" (~ EPSG:4326)
- *
- *                     0,90
- *        +------+------+------+------+
- *        |    top(a0)  |    top(a1)  |
- *        |             |             |
- * -180,0 +.... L .... 0,0 .... R ....+ 180,0
- *        |             |             |
- *        |  bottom(a2) |  bottom(a3) |
- *        +------+------+------+------+
- *                     0,-90
- */
-ChunkedECPSphere.prototype.initSides = function () {
-    //L
-    this.addSide(new THREE.Vector2(-Math.PI, -Math.PI*0.5), Math.PI, {
-      top: 'a0',
-      bottom: 'a2'
-    });
+ChunkedECPSphere.prototype.initBaseTiles = function () {
+  this.tileLoader.provider.onReady(function () {
+    var activeLayer = this.tileLoader.layer;
+    var layer = this.tileLoader.provider.getLayerByName(activeLayer);
+    this.maxLevels = Math.min(layer.levels, this.maxLevels);
+    var baseRes = layer.resolutions[0].lat;
+    baseRes = baseRes*Math.PI/180; // to rad
 
-    //R
-    this.addSide(new THREE.Vector2(0, -Math.PI*0.5), Math.PI, {
-      top: 'a1',
-      bottom: 'a3'
-    });
+    for (var theta = Math.PI*0.5; theta > -Math.PI*0.5; theta -= baseRes) {
+      for (var phi = -Math.PI; phi < Math.PI; phi += baseRes) {
+        this.addBaseTile(new THREE.Vector2(phi, theta), baseRes);
+      }
+    }
+  }.bind(this));
 };
 
-ChunkedECPSphere.prototype.addSide = function (anchor, extent, virtualEarthIndex) {
+ChunkedECPSphere.prototype.addBaseTile = function (anchor, extent) {
   var rootTile = new SphereTile({
     anchor: anchor,
     extent: extent,
     parent: null,
     master: this,
-    level: 0,
-    ulrichFactor: 0.008*this.radius,
-    virtualEarthIndex: virtualEarthIndex,
+    level: 1,
+    ulrichFactor: 0.004*this.radius,
     tileLoader: this.tileLoader
   });
 
-  this.sides.push(rootTile);
+  this.baseTiles.push(rootTile);
 };
 
 ChunkedECPSphere.prototype.update = function () {
@@ -73,7 +61,7 @@ ChunkedECPSphere.prototype.update = function () {
   this.updateFrustum();
   this.calculateCameraWorldPosition();
 
-  this.sides.forEach(function (rootTile) {
+  this.baseTiles.forEach(function (rootTile) {
     rootTile.update();
   });
 };
@@ -107,8 +95,8 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
     depthTest: false
   });
 
-  tileMaterial.wireframe = true;
-  tileMaterial.wireframeLinewidth = 1.0;
+  // tileMaterial.wireframe = true;
+  // tileMaterial.wireframeLinewidth = 1.0;
 
   var tileMesh = new THREE.Mesh(
     tileGeometry,
@@ -121,6 +109,19 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
 };
 
 ChunkedECPSphere.prototype.removeTile = function (tile) {
+  // var selectedTile = this.getObjectByName(tile.id);
+  // if (selectedTile) {
+  //   // Fade out and remove
+  //   this._animateTileOpacity(selectedTile.material, -100, function () {
+  //     if (tile.texture) {
+  //       tile.texture.dispose();
+  //     }
+  //     selectedTile.geometry.dispose();
+  //     selectedTile.material.dispose();
+  //     this.remove(selectedTile);
+  //   });
+  // }
+
   var selectedTile = this.getObjectByName(tile.id);
   if (selectedTile) {
     if (tile.texture) {
@@ -130,6 +131,26 @@ ChunkedECPSphere.prototype.removeTile = function (tile) {
     selectedTile.material.dispose();
     this.remove(selectedTile);
   }
+};
+
+ChunkedECPSphere.prototype._animateTileOpacity = function (material, fadeTime, done) {
+  var self = this;
+
+  var toValue = fadeTime > 0 ? 1.0 : 0.0;
+  var opacity = material.uniforms.opacity.value;
+
+  var tweenOpacity = new TWEEN.Tween({opacity: opacity})
+      .to({opacity: 1.0}, Math.abs(fadeTime))
+      .easing(TWEEN.Easing.Linear.None)
+      .onUpdate(function () {
+        material.uniforms.opacity.value = this.opacity;
+      })
+      .onComplete(function () {
+        if (typeof done === 'function') {
+          done.call(self);
+        }
+      });
+  tweenOpacity.start();
 };
 
 ChunkedECPSphere.prototype.getMaxScreenSpaceError = function () {

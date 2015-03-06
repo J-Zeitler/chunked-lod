@@ -9,8 +9,6 @@ var SphereTile = function (opts) {
   this.ulrichFactor = opts.ulrichFactor;
   this.tileLoader = opts.tileLoader;
 
-  this.virtualEarthIndex = opts.virtualEarthIndex;
-
   this.col = opts.col || 0;
   this.row = opts.row || 0;
 
@@ -82,14 +80,6 @@ SphereTile.prototype.getGeometry = function () {
   this.geometry = new THREE.BufferGeometry();
   var res = this.master.getTileRes();
 
-  var latMin = this.anchor.y;
-  var latMax = this.anchor.y + this.extent;
-  mercatorMin = SphereTile.geodeticLatitudeToMercatorAngle(latMin);
-  mercatorMax = SphereTile.geodeticLatitudeToMercatorAngle(latMax);
-
-  // console.log("Lat: ", {min: latMin, max: latMax},
-  //             "\nMercator: ", {min: mercatorMin, max: mercatorMax});
-
   // Positions
   var resMinus1 = res - 1;
   var scale = this.extent/resMinus1;
@@ -99,7 +89,14 @@ SphereTile.prototype.getGeometry = function () {
     for (var x = 0; x < res; x++) {
       var posOffset = (y*res + x)*3;
       var phi = this.anchorPhi + x*scale;
-      var theta = this.anchorTheta - y*scale;
+      var theta = this.anchorTheta + y*scale;
+
+      if (phi > 2.0*Math.PI) {
+        phi = 2.0*Math.PI;
+      }
+      if (theta > Math.PI) {
+        theta = Math.PI;
+      }
 
       var pos = this.polarToCartesian(phi, theta);
 
@@ -109,10 +106,7 @@ SphereTile.prototype.getGeometry = function () {
 
       var uvOffset = (y*res + x)*2;
       uvs[uvOffset] = x/resMinus1;
-
-      var defaultV = y/resMinus1; // [0, 1]
-
-      uvs[uvOffset + 1] = y/resMinus1;
+      uvs[uvOffset + 1] = 1 - y/resMinus1;
     }
   }
 
@@ -124,19 +118,19 @@ SphereTile.prototype.getGeometry = function () {
       var i = y*res + x;
 
       var self = i;
-      var up = i + res;
+      var down = i + res;
       var left = i - 1;
-      var leftUp = left + res;
+      var leftDown = left + res;
 
       // top left
+      indexData.push(self);
       indexData.push(left);
-      indexData.push(up);
-      indexData.push(leftUp);
+      indexData.push(leftDown);
 
       // bottom right
-      indexData.push(left);
       indexData.push(self);
-      indexData.push(up);
+      indexData.push(leftDown);
+      indexData.push(down);
     }
   }
 
@@ -157,15 +151,15 @@ SphereTile.prototype.getBoundingBox = function () {
 
 SphereTile.prototype.calculateCorners = function () {
   this.corners = [
-    this.polarToCartesian(this.anchorPhi, this.anchorTheta), // BL
-    this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta), // BR
-    this.polarToCartesian(this.anchorPhi, this.anchorTheta - this.extent), // TL
-    this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta - this.extent) // TR
+    this.polarToCartesian(this.anchorPhi, this.anchorTheta + this.extent), // BL
+    this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta + this.extent), // BR
+    this.polarToCartesian(this.anchorPhi, this.anchorTheta), // TL
+    this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta) // TR
   ];
 
   this.SWNE = [
-    this.anchor.clone(),
-    this.anchor.clone().addScalar(this.extent)
+    this.anchor.clone().add(new THREE.Vector2(0, -this.extent)),
+    this.anchor.clone().add(new THREE.Vector2(this.extent, 0))
   ];
 };
 
@@ -292,48 +286,21 @@ SphereTile.prototype.split = function () {
     tileLoader: this.tileLoader
   }
 
-  var nextCol = this.col*2;
-  var nextRow = this.row*2;
-
-  // BL
-  opts.anchor = this.anchor.clone();
-  opts.col = nextCol;
-  opts.row = nextRow + 1;
-  opts.virtualEarthIndex = {
-    top: this.virtualEarthIndex.bottom + '0',
-    bottom: this.virtualEarthIndex.bottom + '2'
-  };
-  this.bottomLeft = new SphereTile(opts);
-
-  // BR
-  opts.anchor = new THREE.Vector2(this.anchor.x + nextExtent, this.anchor.y);
-  opts.col = nextCol + 1;
-  opts.row = nextRow + 1;
-  opts.virtualEarthIndex = {
-    top: this.virtualEarthIndex.bottom + '1',
-    bottom: this.virtualEarthIndex.bottom + '3'
-  };
-  this.bottomRight = new SphereTile(opts);
-
   // TL
-  opts.anchor = new THREE.Vector2(this.anchor.x, this.anchor.y + nextExtent);
-  opts.col = nextCol;
-  opts.row = nextRow;
-  opts.virtualEarthIndex = {
-    top: this.virtualEarthIndex.top + '0',
-    bottom: this.virtualEarthIndex.top + '2'
-  };
+  opts.anchor = this.anchor.clone();
   this.topLeft = new SphereTile(opts);
 
   // TR
-  opts.anchor = new THREE.Vector2(this.anchor.x + nextExtent, this.anchor.y + nextExtent);
-  opts.col = nextCol + 1;
-  opts.row = nextRow;
-  opts.virtualEarthIndex = {
-    top: this.virtualEarthIndex.top + '1',
-    bottom: this.virtualEarthIndex.top + '3'
-  };
+  opts.anchor = new THREE.Vector2(this.anchor.x + nextExtent, this.anchor.y);
   this.topRight = new SphereTile(opts);
+
+  // BL
+  opts.anchor = new THREE.Vector2(this.anchor.x, this.anchor.y - nextExtent);
+  this.bottomLeft = new SphereTile(opts);
+
+  // BR
+  opts.anchor = new THREE.Vector2(this.anchor.x + nextExtent, this.anchor.y - nextExtent);
+  this.bottomRight = new SphereTile(opts);
 
   this.isSplit = true;
 };
@@ -359,18 +326,21 @@ SphereTile.prototype.merge = function () {
 };
 
 SphereTile.prototype.addToMaster = function () {
-  this.loading = true;
-  var texUrl = this.tileLoader.loadTileTexture(this, function (image) {
-    if (image) {
-      this.texture = THREE.ImageUtils.loadTexture(image);
-
+  if (this.loading) return;
+  var texUrl = this.tileLoader.loadTileTexture(this);
+  if (texUrl) {
+    this.loading = true;
+    this.texture = THREE.ImageUtils.loadTexture(texUrl, false, function () {
       this.master.addTile(this);
       this.added = true;
-    }
-    this.loading = false;
-  }, this);
-  // this.master.addTile(this);
-  // this.added = true;
+
+      this.loading = false;
+    }.bind(this));
+
+    this.texture.generateMipmaps = false;
+    this.texture.magFilter = THREE.LinearFilter;
+    this.texture.minFilter = THREE.LinearFilter;
+  }
 };
 
 /**

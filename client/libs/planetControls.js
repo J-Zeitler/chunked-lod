@@ -17,7 +17,7 @@ var PlanetControls = function (opts) {
   this.orbitControls.noZoom = true;
   this.tiltControls = new THREE.OrbitControls(this.camera);
 
-  this.tiltControls.minPolarAngle = Math.PI*0.1;
+  this.tiltControls.minPolarAngle = Math.PI*0.5;
   this.tiltControls.maxPolarAngle = Math.PI*0.9;
   this.tiltControls.minAzimuthAngle = -Math.PI*0.4;
   this.tiltControls.maxAzimuthAngle = Math.PI*0.4;

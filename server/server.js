@@ -14,16 +14,10 @@ app.use('/', express.static(__dirname + '/../client'));
  *
  * Note: Catch-all proxies might be dangerous on a live server.
  */
-app.get('/proxy', function(req, res) {
-  var url = req.query.url;
-
-  request(url, function (proxyErr, proxyRes, proxyBody) {
-    if (proxyErr) {
-      res.sendStatus(404);
-    } else {
-      res.send(proxyBody);
-    }
-  });
+app.use('/proxy', function (req, res) {
+  var url = req.query;
+  console.log(url);
+  req.pipe(request[req.method.toLowerCase()](url)).pipe(res);
 });
 
 /**
