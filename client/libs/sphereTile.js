@@ -37,10 +37,6 @@ SphereTile.prototype.polarToCartesian = function (phi, theta) {
   );
 };
 
-SphereTile.prototype.radiansToDeg = function (rad) {
-  return rad*180/Math.PI;
-};
-
 /**
  * Check visibility, splitting and merging
  */
@@ -166,12 +162,12 @@ SphereTile.prototype.calculateCorners = function () {
 SphereTile.prototype.getCornersDeg = function () {
   var degSWNE = [
     new THREE.Vector2(
-      this.radiansToDeg(this.SWNE[0].x),
-      this.radiansToDeg(this.SWNE[0].y)
+      SphereTile.radToDeg(this.SWNE[0].x),
+      SphereTile.radToDeg(this.SWNE[0].y)
     ),
     new THREE.Vector2(
-      this.radiansToDeg(this.SWNE[1].x),
-      this.radiansToDeg(this.SWNE[1].y)
+      SphereTile.radToDeg(this.SWNE[1].x),
+      SphereTile.radToDeg(this.SWNE[1].y)
     )
   ];
 
@@ -370,6 +366,10 @@ SphereTile.prototype.destroy = function () {
  */
 SphereTile.maxLatRadians = 1.484422;
 SphereTile.maxLatDegrees = 85.05113;
+SphereTile.ONE_OVER_PI = 0.31830988618;
+SphereTile.ONE_OVER_180 = 0.00555555555;
+SphereTile.DEG_TO_RAD_FACTOR = 0.01745329251;
+SphereTile.RAD_TO_DEG_FACTOR = 57.2957795131;
 
 /**
  * Credits to Cesium WebMercatorProjection
@@ -384,4 +384,12 @@ SphereTile.geodeticLatitudeToMercatorAngle = function (lat) {
 
   var sinLatitude = Math.sin(lat);
   return 0.5*Math.log((1.0 + sinLatitude)/(1.0 - sinLatitude));
+};
+
+SphereTile.radToDeg = function (rad) {
+  return rad*SphereTile.RAD_TO_DEG_FACTOR;
+};
+
+SphereTile.degToRad = function (deg) {
+  return rad*SphereTile.DEG_TO_RAD_FACTOR;
 };

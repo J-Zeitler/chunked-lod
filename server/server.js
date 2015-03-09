@@ -16,7 +16,7 @@ app.use('/', express.static(__dirname + '/../client'));
  */
 app.use('/proxy', function (req, res) {
   var url = req.query;
-  console.log(url);
+  // console.log(url);
   req.pipe(request[req.method.toLowerCase()](url)).pipe(res);
 });
 
