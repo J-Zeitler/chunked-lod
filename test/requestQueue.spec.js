@@ -11,11 +11,8 @@ load(__dirname + '/../client/libs/requestQueue.js', TEST);
 describe('RequestQueue', function(){
   describe('instantiation', function(){
     it('should create a new RequestQueue instance with desired properties', function(){
-      var rq = new TEST.RequestQueue();
-      assert.equal(80, rq.capacity);
-      var rq2 = new TEST.RequestQueue({capacity: 40});
-      assert.equal(40, rq2.capacity);
-
+      var rq = new TEST.RequestQueue({capacity: 40});
+      assert.equal(40, rq.capacity);
       assert.deepEqual([], rq.asArray());
     });
   });
@@ -50,7 +47,7 @@ describe('RequestQueue', function(){
   });
 
   describe('pop', function(){
-    it('should pop off the items in front', function(){
+    it('should pop items off the front of the RequestQueue', function(){
       var rq = new TEST.RequestQueue();
       rq.insert('1');
       rq.insert('2');
@@ -63,6 +60,9 @@ describe('RequestQueue', function(){
       assert.deepEqual(['1'], rq.asArray());
 
       assert.equal('1', rq.pop());
+      assert.deepEqual([], rq.asArray());
+
+      assert.equal(null, rq.pop());
       assert.deepEqual([], rq.asArray());
     });
   });
@@ -77,6 +77,19 @@ describe('RequestQueue', function(){
       rq.insert('2');
 
       assert.deepEqual(['2', '3', '1'], rq.asArray());
+    });
+  });
+
+  describe('overfill', function(){
+    it('should delete last item if the RequestQueue is overfull', function(){
+      var rq = new TEST.RequestQueue({capacity: 3});
+      rq.insert('1');
+      rq.insert('2');
+      rq.insert('3');
+
+      rq.insert('4');
+
+      assert.deepEqual(['4', '3', '2'], rq.asArray());
     });
   });
 });

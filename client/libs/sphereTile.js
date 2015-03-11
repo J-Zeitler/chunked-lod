@@ -329,7 +329,6 @@ SphereTile.prototype.getScreenSpaceError = function () {
  *    +----+----+
  */
 SphereTile.prototype.split = function () {
-
   if (this.isSplit) return;
 
   var nextExtent = this.extent*0.5;
@@ -393,20 +392,19 @@ SphereTile.prototype.merge = function () {
 
 SphereTile.prototype.addToMaster = function () {
   if (this.loading) return;
-  var texUrl = this.tileLoader.loadTileTexture(this);
-  if (texUrl) {
-    this.loading = true;
-    this.texture = THREE.ImageUtils.loadTexture(texUrl, false, function () {
+
+  this.loading = true;
+  this.tileLoader.loadTileTexture(this, function (texture) {
+    this.texture = texture;
+    this.added = true;
+    this.loading = false;
+
+    if (this.parent && !this.parent.isSplit) {
+      console.log("this child was a mistake!");
+    } else {
       this.master.addTile(this);
-      this.added = true;
-
-      this.loading = false;
-    }.bind(this));
-
-    this.texture.generateMipmaps = false;
-    this.texture.magFilter = THREE.LinearFilter;
-    this.texture.minFilter = THREE.LinearFilter;
-  }
+    }
+  }, this);
 
   // this.master.addTile(this);
   // this.added = true;

@@ -21,23 +21,21 @@ ScissTileLoader.prototype.getUrl = function (tile) {
 
 ScissTileLoader.prototype.loadTileTexture = function (tile, callback, ctx) {
   var url = this.getUrl(tile);
-  return url;
 
-  // var img = document.createElement('img');
-  // img.crossOrigin = 'use-credentials';
+  var img = document.createElement('img');
+  var texture = new THREE.Texture(img);
 
-  // this.loadMap[tile.id] = img;
+  img.onload = function () {
+    texture.needsUpdate = true;
+    callback.call(ctx, texture);
+  };
 
-  // img.abort = function () {
-  //   callback.call(ctx, false);
-  //   delete this.loadMap[tile.id];
-  // }.bind(this);
+  // start loading
+  img.src = url;
 
-  // img.onload = function () {
-  //   callback.call(ctx, img);
-  // }.bind(this);
-
-  // img.src = url;
+  texture.generateMipmaps = false;
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
 };
 
 /**

@@ -15,7 +15,7 @@ var Node = function (value, prev, next) {
 var RequestQueue = function (opts) {
   opts = opts || {};
 
-  this.capacity = opts.capacity || 80;
+  this.capacity = opts.capacity || 999;
   if (this.capacity < 1) {
     throw 'RequestQueue: capacity must be > 0';
   }
@@ -53,7 +53,7 @@ RequestQueue.prototype.insert = function (value) {
   }
 
   if (this.length >= this.capacity) {
-    return null;
+    this._removeNode(this.queue.tail.prev);
   }
 
   var node = this.hashedItems[value];
