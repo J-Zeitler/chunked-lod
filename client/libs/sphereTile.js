@@ -145,6 +145,75 @@ SphereTile.prototype.getBoundingBox = function () {
   return this.getGeometry().boundingBox;
 };
 
+SphereTile.prototype.getBoundingBoxCorners = function () {
+  if (this.bboxCorners) return this.bboxCorners;
+
+  this.bboxCorners = [];
+  var bbox = this.getBoundingBox();
+
+  var min = bbox.min.clone();
+  var max = bbox.max.clone();
+
+  this.bboxCorners.push(min); // 0
+
+  this.bboxCorners.push(new THREE.Vector3(max.x, min.y, min.z)); // 1, minMaxX
+  this.bboxCorners.push(new THREE.Vector3(min.x, max.y, min.z)); // 2, minMaxY
+  this.bboxCorners.push(new THREE.Vector3(min.x, min.y, max.z)); // 3, minMaxZ
+
+  this.bboxCorners.push(new THREE.Vector3(min.x, max.y, max.z)); // 4, maxMinX
+  this.bboxCorners.push(new THREE.Vector3(max.x, min.y, max.z)); // 5, maxMinY
+  this.bboxCorners.push(new THREE.Vector3(max.x, max.y, min.z)); // 6, maxMinZ
+
+  this.bboxCorners.push(max); // 7
+
+  return this.bboxCorners;
+};
+
+SphereTile.prototype.getBoundingBoxTriangles = function () {
+  if (this.bboxTris) return this.bboxTris;
+
+  this.bboxTris = {};
+
+  this.bboxTris.corners = this.getBoundingBoxCorners();
+  this.bboxTris.indices = [];
+
+  var min = 0;
+  var x = 1;
+  var y = 2;
+  var z = 3;
+
+  var yz = 4;
+  var xz = 5;
+  var xy = 6;
+  var max = 7;
+
+  // front
+  this.bboxTris.indices.push([min, xz, z]);
+  this.bboxTris.indices.push([min, x, xz]);
+
+  // back
+  this.bboxTris.indices.push([max, y, yz]);
+  this.bboxTris.indices.push([max, xy, y]);
+
+  // left
+  this.bboxTris.indices.push([min, z, yz]);
+  this.bboxTris.indices.push([min, yz, y]);
+
+  // right
+  this.bboxTris.indices.push([max, xz, x]);
+  this.bboxTris.indices.push([max, x, xy]);
+
+  // top
+  this.bboxTris.indices.push([max, yz, z]);
+  this.bboxTris.indices.push([max, z, xz]);
+
+  // bottom
+  this.bboxTris.indices.push([min, y, xy]);
+  this.bboxTris.indices.push([min, xy, x]);
+
+  return this.bboxTris;
+};
+
 SphereTile.prototype.calculateCorners = function () {
   this.corners = [
     this.polarToCartesian(this.anchorPhi, this.anchorTheta + this.extent), // BL
@@ -236,17 +305,19 @@ SphereTile.prototype.getId = function () {
 };
 
 SphereTile.prototype.shouldMerge = function () {
-  if (this.isSplit) return this.level > 0 && this.master.getMaxScreenSpaceError() >= this.getScreenSpaceError();
+  if (this.isSplit) return this.level > 0 && 1.0 >= this.getScreenSpaceError();
   return false;
 };
 
 SphereTile.prototype.shouldSplit = function () {
   if (this.isSplit) return false;
-  return this.level < this.master.getMaxLodLevel() && this.master.getMaxScreenSpaceError() < this.getScreenSpaceError();
+  return this.level < this.master.getMaxLodLevel() && 1.0 < this.getScreenSpaceError();
 };
 
 SphereTile.prototype.getScreenSpaceError = function () {
-  return this.master.getPerspectiveScaling()*this.ulrichFactor/this.getDistance();
+  // return this.master.getPerspectiveScaling()*this.ulrichFactor/this.getDistance();
+  var visibleArea = this.master.getBoundingBoxVisibleArea(this);
+  return visibleArea*4.0;
 };
 
 /**
@@ -322,21 +393,24 @@ SphereTile.prototype.merge = function () {
 };
 
 SphereTile.prototype.addToMaster = function () {
-  if (this.loading) return;
-  var texUrl = this.tileLoader.loadTileTexture(this);
-  if (texUrl) {
-    this.loading = true;
-    this.texture = THREE.ImageUtils.loadTexture(texUrl, false, function () {
-      this.master.addTile(this);
-      this.added = true;
+  // if (this.loading) return;
+  // var texUrl = this.tileLoader.loadTileTexture(this);
+  // if (texUrl) {
+  //   this.loading = true;
+  //   this.texture = THREE.ImageUtils.loadTexture(texUrl, false, function () {
+  //     this.master.addTile(this);
+  //     this.added = true;
 
-      this.loading = false;
-    }.bind(this));
+  //     this.loading = false;
+  //   }.bind(this));
 
-    this.texture.generateMipmaps = false;
-    this.texture.magFilter = THREE.LinearFilter;
-    this.texture.minFilter = THREE.LinearFilter;
-  }
+  //   this.texture.generateMipmaps = false;
+  //   this.texture.magFilter = THREE.LinearFilter;
+  //   this.texture.minFilter = THREE.LinearFilter;
+  // }
+
+  this.master.addTile(this);
+  this.added = true;
 };
 
 /**

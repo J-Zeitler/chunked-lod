@@ -22,6 +22,8 @@ var ChunkedECPSphere = function (opts) {
 
   this.baseTiles = [];
   this.initBaseTiles();
+
+  this.cameraViewProjection = new THREE.Matrix4();
 };
 
 ChunkedECPSphere.prototype = Object.create(THREE.Object3D.prototype);
@@ -57,6 +59,11 @@ ChunkedECPSphere.prototype.addBaseTile = function (anchor, extent) {
 };
 
 ChunkedECPSphere.prototype.update = function () {
+  this.camera.updateMatrix();
+  this.camera.updateMatrixWorld();
+  this.camera.matrixWorldInverse.getInverse(this.camera.matrixWorld);
+
+  this.updateCameraViewProjection();
   this.updatePerspectiveScaling();
   this.updateFrustum();
   this.calculateCameraWorldPosition();
@@ -95,8 +102,8 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
     depthTest: false
   });
 
-  // tileMaterial.wireframe = true;
-  // tileMaterial.wireframeLinewidth = 1.0;
+  tileMaterial.wireframe = true;
+  tileMaterial.wireframeLinewidth = 1.0;
 
   var tileMesh = new THREE.Mesh(
     tileGeometry,
@@ -105,6 +112,11 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
 
   tileMesh.name = tile.id;
   this.add(tileMesh);
+
+  var bbox = new THREE.BoundingBoxHelper(tileMesh, 0x00ffff);
+  bbox.update();
+  bbox.name = tile.id + 'bbox';
+  this.add(bbox);
 
 };
 
@@ -130,6 +142,10 @@ ChunkedECPSphere.prototype.removeTile = function (tile) {
     selectedTile.geometry.dispose();
     selectedTile.material.dispose();
     this.remove(selectedTile);
+  }
+  var tileBbox = this.getObjectByName(tile.id + 'bbox');
+  if (tileBbox) {
+    this.remove(tileBbox);
   }
 };
 
@@ -183,15 +199,18 @@ ChunkedECPSphere.prototype.getCameraPosition = function () {
 };
 
 ChunkedECPSphere.prototype.getDistanceToTile = function (tile) {
-  var minDist = Infinity;
-  var camPos = this.getCameraPosition();
+  // var minDist = Infinity;
+  // var camPos = this.getCameraPosition();
 
-  tile.corners.forEach(function (corner) {
-    var dist = camPos.distanceTo(corner);
-    minDist = dist < minDist ? dist : minDist;
-  }, this);
+  // tile.corners.forEach(function (corner) {
+  //   var dist = camPos.distanceTo(corner);
+  //   minDist = dist < minDist ? dist : minDist;
+  // }, this);
 
-  return minDist;
+  // return minDist;
+  // var bboxGeo = new THREE.BoundingBoxHelper(tile.getBoundingBox());
+  // console.log(tile.getBoundingBox());
+  return tile.getBoundingBox().distanceToPoint(this.getCameraPosition());
 };
 
 ChunkedECPSphere.prototype.getCamToCenter = function () {
@@ -199,10 +218,6 @@ ChunkedECPSphere.prototype.getCamToCenter = function () {
 };
 
 ChunkedECPSphere.prototype.isTileInFrustum = function (tile) {
-  this.camera.updateMatrix();
-  this.camera.updateMatrixWorld();
-  this.camera.matrixWorldInverse.getInverse(this.camera.matrixWorld);
-
   var tileBoundingBox = tile.getBoundingBox();
 
   if (this.frustum.intersectsBox(tileBoundingBox)) return true;
@@ -230,6 +245,54 @@ ChunkedECPSphere.prototype.getPerspectiveScaling = function () {
   return this.perspectiveScaling;
 };
 
+ChunkedECPSphere.prototype.getBoundingBoxVisibleArea = function (tile) {
+  var bboxTris = tile.getBoundingBoxTriangles();
+
+  // Project to sphere around camera
+  var n = new THREE.Vector3();
+  var a = new THREE.Vector3();
+  var b = new THREE.Vector3();
+  var projectedTris = [];
+  bboxTris.indices.forEach(function (triIndices) {
+    var projectedVerts = [];
+    triIndices.forEach(function (idx) {
+      var p = bboxTris.corners[idx].clone();
+      // to camera space
+      p.applyMatrix4(this.camera.matrixWorldInverse);
+      // to unit sphere around camera
+      p.normalize();
+      projectedVerts.push(p);
+    }, this);
+
+    a.subVectors(projectedVerts[1], projectedVerts[0]);
+    b.subVectors(projectedVerts[2], projectedVerts[0]);
+    n.crossVectors(a, b);
+
+    // backface cull
+    if (n.z < 0) {
+      projectedTris.push(projectedVerts);
+    }
+
+  }, this);
+
+  var triarea = function (a, b, c) {
+    return 0.5*Math.abs(a.x*(b.y - c.y) + b.x*(c.y - a.y) + c.x*(a.y - b.y));
+  };
+
+  var visibleArea = 0;
+  projectedTris.forEach(function (tri) {
+    var meanX = (tri[0].x + tri[1].x + tri[2].x)/3;
+    var meanY = (tri[0].y + tri[1].y + tri[2].y)/3;
+
+    // -e^(-x^2-y^2)+2, domain: R^2, range: [1, 2)
+    var unbiasMid = -Math.pow(Math.E, -meanX*meanX - meanY*meanY) + 2;
+
+    visibleArea += triarea(tri[0], tri[1], tri[2]); //*unbiasMid;
+  });
+
+  return visibleArea;
+};
+
 /**
  * Calculate horizontal perspective scaling factor.
  * Divide by object dist to camera to get number of pixels per unit at that dist.
@@ -242,6 +305,13 @@ ChunkedECPSphere.prototype.updatePerspectiveScaling = function () {
   this.perspectiveScaling = window.innerWidth/(aspect*heightScale);
 };
 
+ChunkedECPSphere.prototype.updateCameraViewProjection = function () {
+  this.cameraViewProjection.multiplyMatrices(
+    this.camera.projectionMatrix,
+    this.camera.matrixWorldInverse
+  );
+};
+
 ChunkedECPSphere.prototype.updateFrustum = function () {
-  this.frustum.setFromMatrix(new THREE.Matrix4().multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse));
+  this.frustum.setFromMatrix(this.cameraViewProjection);
 };
