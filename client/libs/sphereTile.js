@@ -231,12 +231,12 @@ SphereTile.prototype.calculateCorners = function () {
 SphereTile.prototype.getCornersDeg = function () {
   var degSWNE = [
     new THREE.Vector2(
-      SphereTile.radToDeg(this.SWNE[0].x),
-      SphereTile.radToDeg(this.SWNE[0].y)
+      MathUtils.radToDeg(this.SWNE[0].x),
+      MathUtils.radToDeg(this.SWNE[0].y)
     ),
     new THREE.Vector2(
-      SphereTile.radToDeg(this.SWNE[1].x),
-      SphereTile.radToDeg(this.SWNE[1].y)
+      MathUtils.radToDeg(this.SWNE[1].x),
+      MathUtils.radToDeg(this.SWNE[1].y)
     )
   ];
 
@@ -305,19 +305,18 @@ SphereTile.prototype.getId = function () {
 };
 
 SphereTile.prototype.shouldMerge = function () {
-  if (this.isSplit) return this.level > 0 && 1.0 >= this.getScreenSpaceError();
+  if (this.isSplit) return this.level > 0 && SphereTile.SPLIT_TOLERANCE >= this.getScreenSpaceError();
   return false;
 };
 
 SphereTile.prototype.shouldSplit = function () {
   if (this.isSplit) return false;
-  return this.level < this.master.getMaxLodLevel() && 1.0 < this.getScreenSpaceError();
+  return this.level < this.master.getMaxLodLevel() && SphereTile.SPLIT_TOLERANCE < this.getScreenSpaceError();
 };
 
 SphereTile.prototype.getScreenSpaceError = function () {
-  // return this.master.getPerspectiveScaling()*this.ulrichFactor/this.getDistance();
   var visibleArea = this.master.getBoundingBoxVisibleArea(this);
-  return visibleArea*4.0;
+  return visibleArea*SphereTile.SPLIT_FACTOR;
 };
 
 /**
@@ -374,7 +373,7 @@ SphereTile.prototype.split = function () {
 
 /**
  * Collapse this tile into a leaf node
- * TODO: Children get stuck in limbo, causing z-fighting, if they haven't finished loading
+ * TODO: Children get stuck in limbo if they haven't finished loading
  */
 SphereTile.prototype.merge = function () {
   if (this.isSplit) {
@@ -393,24 +392,24 @@ SphereTile.prototype.merge = function () {
 };
 
 SphereTile.prototype.addToMaster = function () {
-  // if (this.loading) return;
-  // var texUrl = this.tileLoader.loadTileTexture(this);
-  // if (texUrl) {
-  //   this.loading = true;
-  //   this.texture = THREE.ImageUtils.loadTexture(texUrl, false, function () {
-  //     this.master.addTile(this);
-  //     this.added = true;
+  if (this.loading) return;
+  var texUrl = this.tileLoader.loadTileTexture(this);
+  if (texUrl) {
+    this.loading = true;
+    this.texture = THREE.ImageUtils.loadTexture(texUrl, false, function () {
+      this.master.addTile(this);
+      this.added = true;
 
-  //     this.loading = false;
-  //   }.bind(this));
+      this.loading = false;
+    }.bind(this));
 
-  //   this.texture.generateMipmaps = false;
-  //   this.texture.magFilter = THREE.LinearFilter;
-  //   this.texture.minFilter = THREE.LinearFilter;
-  // }
+    this.texture.generateMipmaps = false;
+    this.texture.magFilter = THREE.LinearFilter;
+    this.texture.minFilter = THREE.LinearFilter;
+  }
 
-  this.master.addTile(this);
-  this.added = true;
+  // this.master.addTile(this);
+  // this.added = true;
 };
 
 /**
@@ -438,32 +437,6 @@ SphereTile.prototype.destroy = function () {
 /**
  * Static
  */
-SphereTile.maxLatRadians = 1.484422;
-SphereTile.maxLatDegrees = 85.05113;
-SphereTile.ONE_OVER_PI = 0.31830988618;
-SphereTile.ONE_OVER_180 = 0.00555555555;
-SphereTile.DEG_TO_RAD_FACTOR = 0.01745329251;
-SphereTile.RAD_TO_DEG_FACTOR = 57.2957795131;
+SphereTile.SPLIT_FACTOR = 4.0;
+SphereTile.SPLIT_TOLERANCE = 1.0;
 
-/**
- * Credits to Cesium WebMercatorProjection
- * https://github.com/AnalyticalGraphicsInc/cesium/blob/5660d848a102978b30d1d72409ea2cf50aafc206/Source/Core/WebMercatorProjection.js
- */
-SphereTile.geodeticLatitudeToMercatorAngle = function (lat) {
-  if (lat > SphereTile.maxLatRadians) {
-    lat = SphereTile.maxLatRadians;
-  } else if (lat < -SphereTile.maxLatRadians) {
-    lat = -SphereTile.maxLatRadians;
-  }
-
-  var sinLatitude = Math.sin(lat);
-  return 0.5*Math.log((1.0 + sinLatitude)/(1.0 - sinLatitude));
-};
-
-SphereTile.radToDeg = function (rad) {
-  return rad*SphereTile.RAD_TO_DEG_FACTOR;
-};
-
-SphereTile.degToRad = function (deg) {
-  return rad*SphereTile.DEG_TO_RAD_FACTOR;
-};

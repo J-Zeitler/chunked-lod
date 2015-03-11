@@ -27,7 +27,7 @@ function (tileVert, tileFrag, simplexNoise) {
   var raycaster;
 
   var t = new Date();
-  var EARTH_RADIUS = 1; //6371000;
+  var EARTH_RADIUS = MathUtils.EARTH_RADIUS;
 
   init();
   animate();

@@ -102,8 +102,8 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
     depthTest: false
   });
 
-  tileMaterial.wireframe = true;
-  tileMaterial.wireframeLinewidth = 1.0;
+  // tileMaterial.wireframe = true;
+  // tileMaterial.wireframeLinewidth = 1.0;
 
   var tileMesh = new THREE.Mesh(
     tileGeometry,
@@ -113,10 +113,10 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
   tileMesh.name = tile.id;
   this.add(tileMesh);
 
-  var bbox = new THREE.BoundingBoxHelper(tileMesh, 0x00ffff);
-  bbox.update();
-  bbox.name = tile.id + 'bbox';
-  this.add(bbox);
+  // var bbox = new THREE.BoundingBoxHelper(tileMesh, 0x00ffff);
+  // bbox.update();
+  // bbox.name = tile.id + 'bbox';
+  // this.add(bbox);
 
 };
 
