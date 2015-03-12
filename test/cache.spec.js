@@ -1,7 +1,6 @@
 'use strict';
 
 var assert = require('assert');
-var util = require('util');
 var load = require(__dirname + '/loadModule');
 
 var TEST = {};
@@ -77,7 +76,21 @@ describe('Cache', function(){
     });
   });
 
-  describe('promote', function(){
+  describe('peek', function(){
+    it('should return an item without affecting the cache', function(){
+      var cache = new TEST.Cache();
+      cache.insert(items[1]);
+      cache.insert(items[0]);
+
+      assert.deepEqual(items[0], cache.peek());
+      assert.deepEqual([items[0], items[1]], cache.asArray());
+
+      assert.deepEqual(items[1], cache.peek('k1'));
+      assert.deepEqual([items[0], items[1]], cache.asArray());
+    });
+  });
+
+  describe('promote on insert', function(){
     it('should promote inserted item to front', function(){
       var cache = new TEST.Cache();
       cache.insert(items[2]);
@@ -85,6 +98,18 @@ describe('Cache', function(){
       cache.insert(items[0]);
 
       cache.insert(items[1]);
+      assert.deepEqual([items[1], items[0], items[2]], cache.asArray());
+    });
+  });
+
+  describe('promote on access', function(){
+    it('should promote accessed item to front', function(){
+      var cache = new TEST.Cache();
+      cache.insert(items[2]);
+      cache.insert(items[1]);
+      cache.insert(items[0]);
+
+      cache.find('k1');
 
       assert.deepEqual([items[1], items[0], items[2]], cache.asArray());
     });

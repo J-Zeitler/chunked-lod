@@ -20,7 +20,7 @@ var Node = function (key, value, prev, next) {
 var Cache = function (opts) {
   opts = opts || {};
 
-  this.capacity = opts.capacity || 999;
+  this.capacity = opts.capacity || 99;
   if (this.capacity < 1) {
     throw 'Cache: capacity must be > 0';
   }
@@ -51,6 +51,11 @@ Cache.prototype._removeNode = function (node) {
   node.next.prev = node.prev;
 };
 
+Cache.prototype._promoteNode = function (node) {
+  this._removeNode(node);
+  this._insertNode(node);
+}
+
 Cache.prototype.insert = function (key, value) {
   // Ceck if object format insert
   if (key.key && key.value && !value) {
@@ -69,8 +74,7 @@ Cache.prototype.insert = function (key, value) {
   var node = this.hashedItems[key];
 
   if (node) {
-    this._removeNode(node);
-    this._insertNode(node);
+    this._promoteNode(node);
   } else {
     node = new Node(key, value);
     this._insertNode(node);
@@ -90,13 +94,27 @@ Cache.prototype.remove = function (key) {
     this.length--;
     return node;
   }
-
   return null;
 };
 
 Cache.prototype.pop = function () {
   var node = this.remove(this.queue.head.next.key);
-  if (node) {
+  if (node && node != this.queue.tail) {
+    return node.asPair();
+  }
+  return null;
+};
+
+Cache.prototype.peek = function (key) {
+  var node;
+  if (key) {
+    node = this.hashedItems[key];
+  } else {
+    // No key -> peek at first item
+    node = this.queue.head.next;
+  }
+
+  if (node && node != this.queue.tail) {
     return node.asPair();
   }
   return null;
@@ -104,7 +122,10 @@ Cache.prototype.pop = function () {
 
 Cache.prototype.find = function (key) {
   var node = this.hashedItems[key];
-  if (node) return node.asPair();
+  if (node) {
+    this._promoteNode(node);
+    return node.asPair();
+  }
   return null;
 };
 
