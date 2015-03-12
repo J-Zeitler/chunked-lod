@@ -9,9 +9,8 @@ require([
     "mapboxSettings",
     "virtualEarthSettings",
     "onterraSettings",
-    "libs/tileLoader",
     "libs/scissTileLoader",
-    "libs/tileNode",
+    "libs/tileProvider",
     "libs/sphereTile",
     "libs/chunkedCubeSphere",
     "libs/chunkedECPSphere",
@@ -45,11 +44,13 @@ function (tileVert, tileFrag, simplexNoise) {
     scene = new THREE.Scene();
 
     THREE.ImageUtils.crossOrigin = '';
-    var provider = new ScissWMSProvider();
-
+    var wmsProvider = new ScissWMSProvider();
     var tileLoader = new ScissTileLoader({
-      provider: provider,
+      wmsProvider: wmsProvider,
       layer: 'Earth_Global_Mosaic_Pan_Sharpened'
+    });
+    var tileProvider = new TileProvider({
+      tileLoader: tileLoader
     });
 
     /**
@@ -63,9 +64,13 @@ function (tileVert, tileFrag, simplexNoise) {
         vert: tileVert,
         frag: tileFrag
       },
-      tileLoader: tileLoader
+      tileProvider: tileProvider
     });
-    scene.add(chunkedCubeSphere);
+
+    wmsProvider.onReady(function () {
+      chunkedCubeSphere.init();
+      scene.add(chunkedCubeSphere);
+    });
 
     coordinateAxes = new CoordinateAxes({ scale: EARTH_RADIUS*3 });
     scene.add(coordinateAxes);

@@ -10,7 +10,7 @@ var ChunkedECPSphere = function (opts) {
   this.maxLevels = opts.maxLevels || 32;
 
   this.texture = opts.texture; // Use a static texture
-  this.tileLoader = opts.tileLoader // ... or dynamic ones
+  this.tileProvider = opts.tileProvider // ... or dynamic ones
 
   this.vertShader = opts.shaders.vert;
   this.fragShader = opts.shaders.frag;
@@ -21,27 +21,28 @@ var ChunkedECPSphere = function (opts) {
   this.frustum = new THREE.Frustum();
 
   this.baseTiles = [];
-  this.initBaseTiles();
 
   this.cameraViewProjection = new THREE.Matrix4();
 };
 
 ChunkedECPSphere.prototype = Object.create(THREE.Object3D.prototype);
 
-ChunkedECPSphere.prototype.initBaseTiles = function () {
-  this.tileLoader.provider.onReady(function () {
-    var activeLayer = this.tileLoader.layer;
-    var layer = this.tileLoader.provider.getLayerByName(activeLayer);
-    this.maxLevels = Math.min(layer.levels, this.maxLevels);
-    var baseRes = layer.resolutions[0].lat;
-    baseRes = baseRes*Math.PI/180; // to rad
+ChunkedECPSphere.prototype.init = function () {
+  var layer = this.tileProvider.getActiveLayer();
+  this.maxLevels = Math.min(layer.levels, this.maxLevels);
+  var baseResDeg = layer.resolutions[0].lat;
+  var baseResRad = MathUtils.degToRad(baseResDeg);
 
-    for (var theta = Math.PI*0.5; theta > -Math.PI*0.5; theta -= baseRes) {
-      for (var phi = -Math.PI; phi < Math.PI; phi += baseRes) {
-        this.addBaseTile(new THREE.Vector2(phi, theta), baseRes);
-      }
+  for (var theta = Math.PI*0.5; theta > -Math.PI*0.5; theta -= baseResRad) {
+    for (var phi = -Math.PI; phi < Math.PI; phi += baseResRad) {
+      this.addBaseTile(new THREE.Vector2(phi, theta), baseResRad);
     }
-  }.bind(this));
+  }
+
+  // var geometry = new THREE.TorusGeometry(this.radius*1.03, this.radius*0.005, 16, 200);
+  // var material = new THREE.MeshBasicMaterial({color: 0xff0000});
+  // var torus = new THREE.Mesh(geometry, material);
+  // this.add( torus );
 };
 
 ChunkedECPSphere.prototype.addBaseTile = function (anchor, extent) {
@@ -52,7 +53,7 @@ ChunkedECPSphere.prototype.addBaseTile = function (anchor, extent) {
     master: this,
     level: 1,
     ulrichFactor: 0.004*this.radius,
-    tileLoader: this.tileLoader
+    tileProvider: this.tileProvider
   });
 
   this.baseTiles.push(rootTile);
@@ -99,7 +100,7 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
     vertexShader: this.vertShader,
     fragmentShader: this.fragShader,
     transparent: true,
-    depthTest: false
+    // depthTest: false
   });
 
   // tileMaterial.wireframe = true;

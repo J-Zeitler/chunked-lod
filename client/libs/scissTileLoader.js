@@ -3,7 +3,7 @@
 var ScissTileLoader = function (opts) {
   opts = opts || {};
 
-  this.provider = opts.provider;
+  this.wmsProvider = opts.wmsProvider;
   this.layer = opts.layer || 'Earth_Global_Mosaic_Pan_Sharpened';
 
   this.flushImgSrc = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
@@ -13,42 +13,43 @@ var ScissTileLoader = function (opts) {
 
 // ScissTileLoader.prototype = Object.create(TileLoader.prototype);
 
-ScissTileLoader.prototype.getUrl = function (tile) {
-  var SWNE = tile.getCornersDeg();
-  var targetUrl = this.provider.getTileUrl(SWNE[0], SWNE[1], this.layer);
+ScissTileLoader.prototype.getUrl = function (patch) {
+  var SWNE = patch.getCornersDeg();
+  var targetUrl = this.wmsProvider.getTileUrl(SWNE[0], SWNE[1], this.layer);
   return '/proxy?url=' + encodeURIComponent(targetUrl);
 };
 
-ScissTileLoader.prototype.loadTileTexture = function (tile, callback, ctx) {
-  var url = this.getUrl(tile);
+ScissTileLoader.prototype.loadTileTexture = function (patch, done, ctx) {
+  var url = this.getUrl(patch);
+  return this.loadTextureByUrl(url, done, ctx);
+};
 
+ScissTileLoader.prototype.loadTextureByUrl = function (url, done, ctx) {
   var img = document.createElement('img');
-  var texture = new THREE.Texture(img);
 
   img.onload = function () {
-    texture.needsUpdate = true;
-    callback.call(ctx, texture);
+    done.call(ctx, img);
   };
 
   // start loading
   img.src = url;
+};
 
-  texture.generateMipmaps = false;
-  texture.magFilter = THREE.LinearFilter;
-  texture.minFilter = THREE.LinearFilter;
+ScissTileLoader.prototype.getActiveLayer = function () {
+  return this.wmsProvider.getLayerByName(this.layer);
 };
 
 /**
- * Check if the ScissTileLoader is loading the supplied tile
+ * Check if the ScissTileLoader is loading the tile for the supplied patch
  */
-ScissTileLoader.prototype.isLoading = function (tile) {
-  return this.loadMap.hasOwnProperty(tile.id);
+ScissTileLoader.prototype.isLoading = function (patch) {
+  return this.loadMap.hasOwnProperty(patch.id);
 };
 
-ScissTileLoader.prototype.abortLoading = function (tile) {
-  if (this.isLoading(tile)) {
-    this.loadMap[tile.id].onload = function () {};
-    this.loadMap[tile.id].src = this.flushImgSrc;
-    this.loadMap[tile.id].abort();
+ScissTileLoader.prototype.abortLoading = function (patch) {
+  if (this.isLoading(patch)) {
+    this.loadMap[patch.id].onload = function () {};
+    this.loadMap[patch.id].src = this.flushImgSrc;
+    this.loadMap[patch.id].abort();
   }
 };

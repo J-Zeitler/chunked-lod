@@ -7,7 +7,7 @@ var SphereTile = function (opts) {
   this.master = opts.master;
   this.level = opts.level;
   this.ulrichFactor = opts.ulrichFactor;
-  this.tileLoader = opts.tileLoader;
+  this.tileProvider = opts.tileProvider;
 
   this.col = opts.col || 0;
   this.row = opts.row || 0;
@@ -41,7 +41,7 @@ SphereTile.prototype.polarToCartesian = function (phi, theta) {
  * Check visibility, splitting and merging
  */
 SphereTile.prototype.update = function () {
-   if (this.isVisible()) {
+  if (this.isVisible()) {
     if (this.shouldSplit()) {
       this.split();
       this.removeFromMaster();
@@ -348,7 +348,7 @@ SphereTile.prototype.split = function () {
     master: this.master,
     level: this.level + 1,
     ulrichFactor: this.ulrichFactor*0.5, //*ulrichModifier,
-    tileLoader: this.tileLoader
+    tileProvider: this.tileProvider
   }
 
   // TL
@@ -394,14 +394,17 @@ SphereTile.prototype.addToMaster = function () {
   if (this.loading) return;
 
   this.loading = true;
-  this.tileLoader.loadTileTexture(this, function (texture) {
-    this.texture = texture;
-    this.added = true;
+  this.tileProvider.requestTile(this, function (texture) {
     this.loading = false;
+    if (!texture) return;
 
-    if (this.parent && !this.parent.isSplit) {
-      console.log("this child was a mistake!");
+    this.texture = texture;
+
+    if (this.isOrphan() || this.isSplit) {
+      // do not add
+      this.removeFromMaster();
     } else {
+      this.added = true;
       this.master.addTile(this);
     }
   }, this);
@@ -410,12 +413,31 @@ SphereTile.prototype.addToMaster = function () {
   // this.added = true;
 };
 
+SphereTile.prototype.isOrphan = function () {
+  // adults cannot be orphaned
+  if (this.parent === null) {
+    return false;
+  }
+
+  var hasParent = this.parent && this.parent.isSplit;
+
+  if (!hasParent) {
+    return true;
+  }
+
+  var isOrphan = this !== this.parent.topRight &&
+                 this !== this.parent.bottomRight &&
+                 this !== this.parent.topLeft &&
+                 this !== this.parent.bottomLeft;
+
+  return isOrphan;
+};
+
 /**
  * Attempt to remove this tile from the render list
  * TODO: ensure remove is successful
  */
 SphereTile.prototype.removeFromMaster = function () {
-  this.tileLoader.abortLoading(this);
   this.master.removeTile(this);
   this.added = false;
 };
@@ -426,9 +448,8 @@ SphereTile.prototype.removeFromMaster = function () {
 SphereTile.prototype.destroy = function () {
   if (this.isSplit) {
     this.merge();
-  } else {
-    this.removeFromMaster();
   }
+  this.removeFromMaster();
 };
 
 

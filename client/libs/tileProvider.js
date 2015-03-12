@@ -3,38 +3,50 @@
 var TileProvider = function (opts) {
   opts = opts || {};
 
-  this.wmsProvider = opts.wmsProvider;
   this.tileLoader = opts.tileLoader;
   this.requestLimit = opts.requestLimit || 80;
-  this.cacheLimit = opts.cacheLimit || 999;
+  this.cacheLimit = opts.cacheLimit || 199;
 
-  this.queues = {};
-  this.cache = {};
-  this.requestBuffer = {};
+  this.cache = new Cache({capacity: this.cacheLimit});
+  this.currentRequests = new Set();
 };
 
-TileProvider.prototype.addLayer = function (layer) {
-  this.queues[layer.name] = new RequestQueue();
+TileProvider.prototype.requestTile = function (patch, done, ctx) {
+  var url = this.tileLoader.getUrl(patch);
+
+  if (this.currentRequests.has(url) || this.currentRequests.size >= this.requestLimit) {
+    done.call(ctx, false);
+    return;
+  }
+
+  var cachedTile = this.cache.find(url);
+  if (cachedTile) {
+    TileProvider.returnAsTexture(cachedTile.value, done, ctx);
+  } else {
+    this.currentRequests.add(url);
+    this.tileLoader.loadTextureByUrl(url, function (img) {
+      TileProvider.returnAsTexture(img, done, ctx);
+      this.cache.insert(url, img);
+      this.currentRequests.delete(url);
+    }, this);
+  }
 };
 
-TileProvider.prototype.removeLayer = function (layer) {
-  delete this.queues[layer.name];
+TileProvider.prototype.getActiveLayer = function () {
+  return this.tileLoader.getActiveLayer();
 };
 
-TileProvider.prototype.requestTile = function (layer, bbox) {
-  this.queues[layer.name].insert(bbox.join());
-  // check chache
-  this.populateRequestBuffer();
-  // return promise
-};
+/////////////////////
+/// Static
+/////////////////////
 
-TileProvider.prototype.populateRequestBuffer = function () {
-  var queues = Object.keys(queues);
-  queues.forEach(function (layer) {
-    var q = this.queues[layer];
-    while (Object.keys(requestBuffer).length < this.requestLimit) {
-      var bbox = q.pop();
+TileProvider.returnAsTexture = function (img, done, ctx) {
+  var texture = new THREE.Texture(img);
 
-    }
-  }, this);
+  texture.needsUpdate = true;
+  texture.generateMipmaps = false;
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
+
+  done.call(ctx, texture);
 };

@@ -20,7 +20,7 @@ var Node = function (key, value, prev, next) {
 var Cache = function (opts) {
   opts = opts || {};
 
-  this.capacity = opts.capacity || 99;
+  this.capacity = opts.capacity || 9999;
   if (this.capacity < 1) {
     throw 'Cache: capacity must be > 0';
   }

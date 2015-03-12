@@ -37,5 +37,5 @@ MathUtils.radToDeg = function (rad) {
 },
 
 MathUtils.degToRad = function (deg) {
-  return rad*MathUtils.RAD_PER_DEG;
+  return deg*MathUtils.RAD_PER_DEG;
 };
