@@ -1,12 +1,12 @@
 precision mediump float;
 
-uniform sampler2D heightmap;
-uniform float worldScale;
+uniform vec2 texAnchor;
+uniform float texExtent;
 
 varying vec2 uVu;
 
 void main() {
-  uVu = uv;
+  uVu = texAnchor + texExtent*uv;
 
   gl_Position = projectionMatrix *
                 modelViewMatrix *

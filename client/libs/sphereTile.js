@@ -8,12 +8,19 @@ var SphereTile = function (opts) {
   this.level = opts.level;
   this.ulrichFactor = opts.ulrichFactor;
   this.tileProvider = opts.tileProvider;
+  this.alignToParent = opts.alignToParent || null;
+
 
   this.col = opts.col || 0;
   this.row = opts.row || 0;
 
   this.loading = false;
   this.visible = true;
+  this.ready = false;
+
+  // Default tex alignment -> use full texture
+  this.texAnchor = new THREE.Vector2(0, 0);
+  this.texExtent = 1;
 
   this.scale = this.master.getScale()/Math.pow(2, this.level);
 
@@ -22,53 +29,83 @@ var SphereTile = function (opts) {
 
   this.calculateCorners();
 
+  this.visibleAreaCovered = false;
+
   this.center = this.getCenter();
 
   this.id = this.getId();
 };
 
-SphereTile.prototype.polarToCartesian = function (phi, theta) {
-  var r = this.master.getRadius();
-
-  return new THREE.Vector3(
-    r*Math.sin(theta)*Math.cos(phi),
-    r*Math.sin(theta)*Math.sin(phi),
-    r*Math.cos(theta)
-  );
-};
+/////////////////////
+/// Updaters
+/////////////////////
 
 /**
  * Check visibility, splitting and merging
  */
 SphereTile.prototype.update = function () {
-  if (this.isVisible()) {
+  this.updateTextureAlignment();
+
+  this.visible = this.isVisible();
+  if (this.visible) {
     if (this.shouldSplit()) {
       this.split();
       this.removeFromMaster();
-      this.update();
+      return this.update();
     } else if (this.shouldMerge()) {
       this.merge();
       this.addToMaster();
-      this.update();
-    } else if (this.isSplit) {
-      this.updateChildren();
-    } else if (!this.added) {
+      return this.update();
+    } else if (!this.added && !this.isSplit) {
       this.addToMaster();
+    } else if (!this.ready && !this.isSplit) {
+      this.requestNewTexture();
     }
-  } else if (this.isSplit) {
-    // TODO: revisit this
-    this.updateChildren();
+
+    var childrenReady = false;
+    if (this.isSplit && this.updateChildren()) {
+      childrenReady = true;
+      this.removeTexture();
+    }
+
   } else {
     this.removeFromMaster();
+    this.removeTexture();
+  }
+
+  return !this.visible || this.ready || childrenReady;
+};
+
+/**
+ * Update children and return if they cover the _visible_ area of this
+ */
+SphereTile.prototype.updateChildren = function () {
+  var blDone = this.bottomLeft.update();
+  var brDone = this.bottomRight.update();
+  var tlDone = this.topLeft.update();
+  var trDone = this.topRight.update();
+  return blDone && brDone && tlDone && trDone;
+};
+
+SphereTile.prototype.updateTextureAlignment = function () {
+  var prevExt = this.texExtent;
+  if (this.parent && !this.ready) {
+    this.texAnchor = this.parent.texAnchor.clone().add(this.alignToParent.multiplyScalar(this.parent.texExtent));
+    this.texExtent = this.parent.texExtent*0.5;
+  } else { // reset to default
+    this.texAnchor.x = 0;
+    this.texAnchor.y = 0;
+    this.texExtent = 1;
+  }
+
+  if (prevExt != this.texExtent) {
+    this.master.updateTileTexture(this);
   }
 };
 
-SphereTile.prototype.updateChildren = function () {
-  this.bottomLeft.update();
-  this.bottomRight.update();
-  this.topLeft.update();
-  this.topRight.update();
-};
+/////////////////////
+/// Geometry
+/////////////////////
 
 SphereTile.prototype.getGeometry = function () {
   if (this.geometry) return this.geometry;
@@ -76,7 +113,7 @@ SphereTile.prototype.getGeometry = function () {
   this.geometry = new THREE.BufferGeometry();
   var res = this.master.getTileRes();
 
-  // Positions
+  // Positions + uvs
   var resMinus1 = res - 1;
   var scale = this.extent/resMinus1;
   var positions = new Float32Array(res*res*3);
@@ -94,7 +131,7 @@ SphereTile.prototype.getGeometry = function () {
         theta = Math.PI;
       }
 
-      var pos = this.polarToCartesian(phi, theta);
+      var pos = MathUtils.polarToCartesian(phi, theta, this.master.getRadius());
 
       positions[posOffset] = pos.x;
       positions[posOffset + 1] = pos.y;
@@ -215,11 +252,12 @@ SphereTile.prototype.getBoundingBoxTriangles = function () {
 };
 
 SphereTile.prototype.calculateCorners = function () {
+  var r = this.master.getRadius();
   this.corners = [
-    this.polarToCartesian(this.anchorPhi, this.anchorTheta + this.extent), // BL
-    this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta + this.extent), // BR
-    this.polarToCartesian(this.anchorPhi, this.anchorTheta), // TL
-    this.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta) // TR
+    MathUtils.polarToCartesian(this.anchorPhi, this.anchorTheta + this.extent, r), // BL
+    MathUtils.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta + this.extent, r), // BR
+    MathUtils.polarToCartesian(this.anchorPhi, this.anchorTheta, r), // TL
+    MathUtils.polarToCartesian(this.anchorPhi + this.extent, this.anchorTheta, r) // TR
   ];
 
   this.SWNE = [
@@ -243,20 +281,9 @@ SphereTile.prototype.getCornersDeg = function () {
   return degSWNE;
 };
 
-/**
- * Return true if all children have finished loading (sorry for murdering english)
- * @return Boolean
- */
-SphereTile.prototype.isChildrenAdded = function () {
-  if (this.isSplit) {
-    var blDone = this.bottomLeft.added || !this.bottomLeft.visible;
-    var brDone = this.bottomRight.added || !this.bottomRight.visible;
-    var tlDone = this.topLeft.added || !this.topLeft.visible;
-    var trDone = this.topRight.added || !this.topRight.visible;
-    return blDone && brDone && tlDone && trDone;
-  }
-  return false;
-};
+/////////////////////
+/// Visibility
+/////////////////////
 
 SphereTile.prototype.isVisible = function () {
   return this.isInFrustum() && this.isWithinHorizon();
@@ -281,20 +308,21 @@ SphereTile.prototype.isWithinHorizon = function () {
   return dotCtCc - this.scale*0.5 < (camDistToCenter - r*r/camDistToCenter);
 };
 
+/////////////////////
+/// Utils
+/////////////////////
+
 SphereTile.prototype.getDistance = function () {
   return this.master.getDistanceToTile(this);
 };
 
-/**
- * Get the center point of this tile
- */
 SphereTile.prototype.getCenter = function () {
   if (this.center) return this.center.clone();
 
   var centerPhi = this.anchorPhi + this.extent*0.5;
   var centerTheta = this.anchorTheta + this.extent*0.5;
 
-  return this.polarToCartesian(centerPhi, centerTheta);
+  return MathUtils.polarToCartesian(centerPhi, centerTheta, this.master.getRadius());
 };
 
 SphereTile.prototype.getId = function () {
@@ -303,6 +331,25 @@ SphereTile.prototype.getId = function () {
   var id = this.center.x + ":" + this.center.y + ":" + this.center.z;
   return id;
 };
+
+/**
+ * Return true if all children have finished loading (sorry for murdering english)
+ * @return Boolean
+ */
+SphereTile.prototype.isChildrenAdded = function () {
+  if (this.isSplit) {
+    var blDone = this.bottomLeft.added || !this.bottomLeft.visible;
+    var brDone = this.bottomRight.added || !this.bottomRight.visible;
+    var tlDone = this.topLeft.added || !this.topLeft.visible;
+    var trDone = this.topRight.added || !this.topRight.visible;
+    return blDone && brDone && tlDone && trDone;
+  }
+  return false;
+};
+
+/////////////////////
+/// Split/Merge
+/////////////////////
 
 SphereTile.prototype.shouldMerge = function () {
   if (this.isSplit) return this.level > 0 && SphereTile.SPLIT_TOLERANCE >= this.getScreenSpaceError();
@@ -353,18 +400,22 @@ SphereTile.prototype.split = function () {
 
   // TL
   opts.anchor = this.anchor.clone();
+  opts.alignToParent = new THREE.Vector2(0, 0);
   this.topLeft = new SphereTile(opts);
 
   // TR
   opts.anchor = new THREE.Vector2(this.anchor.x + nextExtent, this.anchor.y);
+  opts.alignToParent = new THREE.Vector2(0.5, 0);
   this.topRight = new SphereTile(opts);
 
   // BL
   opts.anchor = new THREE.Vector2(this.anchor.x, this.anchor.y - nextExtent);
+  opts.alignToParent = new THREE.Vector2(0, 0.5);
   this.bottomLeft = new SphereTile(opts);
 
   // BR
   opts.anchor = new THREE.Vector2(this.anchor.x + nextExtent, this.anchor.y - nextExtent);
+  opts.alignToParent = new THREE.Vector2(0.5, 0.5);
   this.bottomRight = new SphereTile(opts);
 
   this.isSplit = true;
@@ -390,7 +441,19 @@ SphereTile.prototype.merge = function () {
   this.isSplit = false;
 };
 
+/////////////////////
+/// Attach
+/////////////////////
+
 SphereTile.prototype.addToMaster = function () {
+  this.added = true;
+  this.master.addTile(this);
+  if (this.parent) {
+    this.texture = this.parent.texture;
+  }
+};
+
+SphereTile.prototype.requestNewTexture = function () {
   if (this.loading) return;
 
   this.loading = true;
@@ -399,18 +462,15 @@ SphereTile.prototype.addToMaster = function () {
     if (!texture) return;
 
     this.texture = texture;
+    this.ready = true;
+    this.updateTextureAlignment();
 
-    if (this.isOrphan() || this.isSplit) {
-      // do not add
-      this.removeFromMaster();
-    } else {
-      this.added = true;
-      this.master.addTile(this);
-    }
+    // if (this.isOrphan() || this.isSplit) {
+    //   // do not add
+    // } else {
+    //   this.ready = true;
+    // }
   }, this);
-
-  // this.master.addTile(this);
-  // this.added = true;
 };
 
 SphereTile.prototype.isOrphan = function () {
@@ -442,6 +502,14 @@ SphereTile.prototype.removeFromMaster = function () {
   this.added = false;
 };
 
+SphereTile.prototype.removeTexture = function () {
+  if (this.texture) {
+    this.texture.dispose();
+    this.ready = false;
+    this.texture = undefined;
+  }
+};
+
 /**
  * Remove and collapse this tile
  */
@@ -450,12 +518,12 @@ SphereTile.prototype.destroy = function () {
     this.merge();
   }
   this.removeFromMaster();
+  this.removeTexture();
 };
 
+/////////////////////
+/// Static
+/////////////////////
 
-/**
- * Static
- */
-SphereTile.SPLIT_FACTOR = 4.0;
+SphereTile.SPLIT_FACTOR = 2.0;
 SphereTile.SPLIT_TOLERANCE = 1.0;
-

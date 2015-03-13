@@ -39,3 +39,11 @@ MathUtils.radToDeg = function (rad) {
 MathUtils.degToRad = function (deg) {
   return deg*MathUtils.RAD_PER_DEG;
 };
+
+MathUtils.polarToCartesian = function (phi, theta, r) {
+  return new THREE.Vector3(
+    r*Math.sin(theta)*Math.cos(phi),
+    r*Math.sin(theta)*Math.sin(phi),
+    r*Math.cos(theta)
+  );
+};

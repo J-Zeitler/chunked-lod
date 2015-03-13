@@ -38,11 +38,6 @@ ChunkedECPSphere.prototype.init = function () {
       this.addBaseTile(new THREE.Vector2(phi, theta), baseResRad);
     }
   }
-
-  // var geometry = new THREE.TorusGeometry(this.radius*1.03, this.radius*0.005, 16, 200);
-  // var material = new THREE.MeshBasicMaterial({color: 0xff0000});
-  // var torus = new THREE.Mesh(geometry, material);
-  // this.add( torus );
 };
 
 ChunkedECPSphere.prototype.addBaseTile = function (anchor, extent) {
@@ -75,23 +70,16 @@ ChunkedECPSphere.prototype.update = function () {
 };
 
 ChunkedECPSphere.prototype.addTile = function (tile) {
-  // console.log("adding tile: " + tile.id);
   var selectedTile = this.getObjectByName(tile.id);
   if (selectedTile) return; // already added
 
   var tileGeometry = tile.getGeometry();
 
-  // var topLeft = new THREE.Vector2(
-  //   tile.position.x - tile.scale*0.5,
-  //   tile.position.y + tile.scale*0.5
-  // );
-
   var tileUniforms = {
-    worldScale: {type: "f", value: this.scaleFactor*0.5},
-    level: {type: "f", value: tile.level},
-    tileTex: {type: "t", value: tile.texture},
-    // topLeft: {type: "v2", value: topLeft},
-    // tileScale: {type: "f", value: tile.scale},
+    level: {type: 'f', value: tile.level},
+    tileTex: {type: 't', value: tile.texture},
+    texAnchor: {type: 'v2', value: tile.texAnchor},
+    texExtent: {type: 'f', value: tile.texExtent}
     // opacity: {type: "f", value: 0.0}
   };
 
@@ -99,8 +87,7 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
     uniforms: tileUniforms,
     vertexShader: this.vertShader,
     fragmentShader: this.fragShader,
-    transparent: true,
-    // depthTest: false
+    transparent: true
   });
 
   // tileMaterial.wireframe = true;
@@ -121,6 +108,15 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
 
 };
 
+ChunkedECPSphere.prototype.updateTileTexture = function (tile) {
+  var selectedTile = this.getObjectByName(tile.id);
+  if (selectedTile) {
+    selectedTile.material.uniforms.tileTex.value = tile.texture;
+    selectedTile.material.uniforms.texAnchor.value = tile.texAnchor;
+    selectedTile.material.uniforms.texExtent.value = tile.texExtent;
+  }
+};
+
 ChunkedECPSphere.prototype.removeTile = function (tile) {
   // var selectedTile = this.getObjectByName(tile.id);
   // if (selectedTile) {
@@ -137,9 +133,6 @@ ChunkedECPSphere.prototype.removeTile = function (tile) {
 
   var selectedTile = this.getObjectByName(tile.id);
   if (selectedTile) {
-    if (tile.texture) {
-      tile.texture.dispose();
-    }
     selectedTile.geometry.dispose();
     selectedTile.material.dispose();
     this.remove(selectedTile);
