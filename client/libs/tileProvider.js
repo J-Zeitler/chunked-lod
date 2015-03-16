@@ -44,6 +44,7 @@ TileProvider.returnAsTexture = function (img, done, ctx) {
   var texture = new THREE.Texture(img);
 
   texture.needsUpdate = true;
+  texture.users = 0;
   // texture.generateMipmaps = false;
   // texture.magFilter = THREE.LinearFilter;
   // texture.minFilter = THREE.LinearFilter;

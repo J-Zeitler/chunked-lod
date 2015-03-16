@@ -105,12 +105,12 @@ ChunkedECPSphere.prototype.addTile = function (tile) {
   // bbox.update();
   // bbox.name = tile.id + 'bbox';
   // this.add(bbox);
-
 };
 
 ChunkedECPSphere.prototype.updateTileTexture = function (tile) {
   var selectedTile = this.getObjectByName(tile.id);
   if (selectedTile) {
+    tile.texture.needsUpdate = true;
     selectedTile.material.uniforms.tileTex.value = tile.texture;
     selectedTile.material.uniforms.texAnchor.value = tile.texAnchor;
     selectedTile.material.uniforms.texExtent.value = tile.texExtent;

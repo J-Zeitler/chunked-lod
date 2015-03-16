@@ -47,3 +47,20 @@ MathUtils.polarToCartesian = function (phi, theta, r) {
     r*Math.cos(theta)
   );
 };
+
+MathUtils.maxDefined = function () {
+  var max = -Infinity;
+  var defined = false;
+  for(var i = 0; i < arguments.length; i++) {
+    var arg = arguments[i];
+    if (typeof arg === 'number' && arg > max) {
+      max = arg;
+      defined = true;
+    }
+  }
+
+  if (defined) {
+    return max;
+  }
+  return undefined;
+};

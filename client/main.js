@@ -38,7 +38,7 @@ function (tileVert, tileFrag, simplexNoise) {
      * Scene + camera
      */
     camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.00001*EARTH_RADIUS, EARTH_RADIUS*100);
-    camera.position.set(-EARTH_RADIUS*2, -EARTH_RADIUS, 0);
+    camera.position.set(-EARTH_RADIUS*2, 0, 0);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     scene = new THREE.Scene();
