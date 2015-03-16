@@ -12,7 +12,6 @@ require([
     "libs/scissTileLoader",
     "libs/tileProvider",
     "libs/spherePatch",
-    "libs/chunkedCubeSphere",
     "libs/chunkedECPSphere",
     "libs/coordinateAxes",
     "libs/vendor/orbitControls",
@@ -22,7 +21,7 @@ require([
 function (tileVert, tileFrag, simplexNoise) {
   var camera, controls, renderer, scene;
   var rendererStats;
-  var coordinateAxes, chunkedCubeSphere;
+  var coordinateAxes, lodSphere;
   var raycaster;
 
   var t = new Date();
@@ -63,7 +62,7 @@ function (tileVert, tileFrag, simplexNoise) {
     /**
      * Scene objects
      */
-    chunkedCubeSphere = new ChunkedECPSphere({
+    lodSphere = new ChunkedECPSphere({
       radius: EARTH_RADIUS,
       patchRes: 32,
       camera: camera,
@@ -76,8 +75,8 @@ function (tileVert, tileFrag, simplexNoise) {
     });
 
     wmsProvider.onReady(function () {
-      chunkedCubeSphere.init();
-      scene.add(chunkedCubeSphere);
+      lodSphere.init();
+      scene.add(lodSphere);
     });
 
     coordinateAxes = new CoordinateAxes({ scale: EARTH_RADIUS*3 });
@@ -118,10 +117,10 @@ function (tileVert, tileFrag, simplexNoise) {
     t = new Date();
 
     if (updateLod) {
-      chunkedCubeSphere.update();
+      lodSphere.update();
     }
 
-    rendererStats.update(renderer, chunkedCubeSphere);
+    rendererStats.update(renderer, lodSphere);
     renderer.render(scene, camera);
 
     controls.update();

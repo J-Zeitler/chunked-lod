@@ -7,8 +7,9 @@ var SpherePatch = function (opts) {
   this.master = opts.master;
   this.level = opts.level;
   this.tileProvider = opts.tileProvider;
-  this.alignToParent = opts.alignToParent || null;
+  this.terrainProvider = opts.terrainProvider;
 
+  // Defaults
   this.loading = false;
   this.visible = true;
   this.ready = false;
@@ -17,8 +18,9 @@ var SpherePatch = function (opts) {
 
   this.scale = this.master.getScale()/Math.pow(2, this.level);
 
-  this.anchorPhi = this.anchor.x + Math.PI; // (-PI, PI) to (0, 2*PI)
-  this.anchorTheta = Math.PI*0.5 - this.anchor.y; // (PI/2, -PI/2) to (0, PI)
+  // (lon,lat) to (φ,θ)
+  this.anchorPhi = this.anchor.x + Math.PI; // [-π, π) to [0, 2*π)
+  this.anchorTheta = Math.PI*0.5 - this.anchor.y; // [π/2, -π/2] to [0, π]
 
   this.calculateCorners();
   this.center = this.getCenter();
@@ -109,7 +111,7 @@ SpherePatch.prototype.onReady = function (fn, ctx) {
 };
 
 /**
- * Notify subscribers. Each subscriber is called _once_ and then removed
+ * Notify subscribers. Each subscriber is called _once_ and is then removed
  */
 SpherePatch.prototype._onReadyNotify = function () {
   this._onReadyTasks.forEach(function (task) {

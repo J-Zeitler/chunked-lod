@@ -11,6 +11,7 @@ var ChunkedECPSphere = function (opts) {
 
   this.texture = opts.texture; // Use a static texture
   this.tileProvider = opts.tileProvider // ... or dynamic ones
+  this.terrainProvider = opts.terrainProvider;
 
   this.vertShader = opts.shaders.vert;
   this.fragShader = opts.shaders.frag;
@@ -47,7 +48,8 @@ ChunkedECPSphere.prototype.addBasePatch = function (anchor, extent) {
     parent: null,
     master: this,
     level: 1,
-    tileProvider: this.tileProvider
+    tileProvider: this.tileProvider,
+    terrainProvider: this.terrainProvider
   });
 
   this.basePatches.push(rootPatch);
