@@ -3,7 +3,7 @@ var ChunkedECPSphere = function (opts) {
 
   opts = opts || {};
 
-  this.tileRes = opts.tileRes || 16;
+  this.patchRes = opts.patchRes || 16;
   this.maxScreenSpaceError = opts.maxScreenSpaceError || 2;
   this.camera = opts.camera;
   this.radius = opts.radius || 1;
@@ -20,7 +20,7 @@ var ChunkedECPSphere = function (opts) {
 
   this.frustum = new THREE.Frustum();
 
-  this.baseTiles = [];
+  this.basePatches = [];
 
   this.cameraViewProjection = new THREE.Matrix4();
 };
@@ -35,23 +35,22 @@ ChunkedECPSphere.prototype.init = function () {
 
   for (var theta = Math.PI*0.5; theta > -Math.PI*0.5; theta -= baseResRad) {
     for (var phi = -Math.PI; phi < Math.PI; phi += baseResRad) {
-      this.addBaseTile(new THREE.Vector2(phi, theta), baseResRad);
+      this.addBasePatch(new THREE.Vector2(phi, theta), baseResRad);
     }
   }
 };
 
-ChunkedECPSphere.prototype.addBaseTile = function (anchor, extent) {
-  var rootTile = new SphereTile({
+ChunkedECPSphere.prototype.addBasePatch = function (anchor, extent) {
+  var rootPatch = new SpherePatch({
     anchor: anchor,
     extent: extent,
     parent: null,
     master: this,
     level: 1,
-    ulrichFactor: 0.004*this.radius,
     tileProvider: this.tileProvider
   });
 
-  this.baseTiles.push(rootTile);
+  this.basePatches.push(rootPatch);
 };
 
 ChunkedECPSphere.prototype.update = function () {
@@ -64,103 +63,59 @@ ChunkedECPSphere.prototype.update = function () {
   this.updateFrustum();
   this.calculateCameraWorldPosition();
 
-  this.baseTiles.forEach(function (rootTile) {
-    rootTile.update();
+  this.basePatches.forEach(function (rootPatch) {
+    rootPatch.update();
   });
 };
 
-ChunkedECPSphere.prototype.addTile = function (tile) {
-  var selectedTile = this.getObjectByName(tile.id);
-  if (selectedTile) return; // already added
+ChunkedECPSphere.prototype.addPatch = function (patch) {
+  var selectedPatch = this.getObjectByName(patch.id);
+  if (selectedPatch) return; // already added
 
-  var tileGeometry = tile.getGeometry();
+  var patchGeometry = patch.getGeometry();
 
-  var tileUniforms = {
-    level: {type: 'f', value: tile.level},
-    tileTex: {type: 't', value: tile.texture},
-    texAnchor: {type: 'v2', value: tile.texAnchor},
-    texExtent: {type: 'f', value: tile.texExtent}
+  var patchUniforms = {
+    level: {type: 'f', value: patch.level},
+    tileTex: {type: 't', value: patch.texture},
+    terrain: {type: 't', value: patch.terrain},
     // opacity: {type: "f", value: 0.0}
   };
 
-  var tileMaterial = new THREE.ShaderMaterial({
-    uniforms: tileUniforms,
+  var patchMaterial = new THREE.ShaderMaterial({
+    uniforms: patchUniforms,
     vertexShader: this.vertShader,
     fragmentShader: this.fragShader,
     transparent: true
   });
 
-  // tileMaterial.wireframe = true;
-  // tileMaterial.wireframeLinewidth = 1.0;
+  // patchMaterial.wireframe = true;
+  // patchMaterial.wireframeLinewidth = 1.0;
 
-  var tileMesh = new THREE.Mesh(
-    tileGeometry,
-    tileMaterial
+  var patchMesh = new THREE.Mesh(
+    patchGeometry,
+    patchMaterial
   );
 
-  tileMesh.name = tile.id;
-  this.add(tileMesh);
+  patchMesh.name = patch.id;
+  this.add(patchMesh);
 
-  // var bbox = new THREE.BoundingBoxHelper(tileMesh, 0x00ffff);
+  // var bbox = new THREE.BoundingBoxHelper(patchMesh, 0x00ffff);
   // bbox.update();
-  // bbox.name = tile.id + 'bbox';
+  // bbox.name = patch.id + 'bbox';
   // this.add(bbox);
 };
 
-ChunkedECPSphere.prototype.updateTileTexture = function (tile) {
-  var selectedTile = this.getObjectByName(tile.id);
-  if (selectedTile) {
-    tile.texture.needsUpdate = true;
-    selectedTile.material.uniforms.tileTex.value = tile.texture;
-    selectedTile.material.uniforms.texAnchor.value = tile.texAnchor;
-    selectedTile.material.uniforms.texExtent.value = tile.texExtent;
+ChunkedECPSphere.prototype.removePatch = function (patch) {
+  var selectedPatch = this.getObjectByName(patch.id);
+  if (selectedPatch) {
+    selectedPatch.geometry.dispose();
+    selectedPatch.material.dispose();
+    this.remove(selectedPatch);
   }
-};
-
-ChunkedECPSphere.prototype.removeTile = function (tile) {
-  // var selectedTile = this.getObjectByName(tile.id);
-  // if (selectedTile) {
-  //   // Fade out and remove
-  //   this._animateTileOpacity(selectedTile.material, -100, function () {
-  //     if (tile.texture) {
-  //       tile.texture.dispose();
-  //     }
-  //     selectedTile.geometry.dispose();
-  //     selectedTile.material.dispose();
-  //     this.remove(selectedTile);
-  //   });
-  // }
-
-  var selectedTile = this.getObjectByName(tile.id);
-  if (selectedTile) {
-    selectedTile.geometry.dispose();
-    selectedTile.material.dispose();
-    this.remove(selectedTile);
+  var patchBbox = this.getObjectByName(patch.id + 'bbox');
+  if (patchBbox) {
+    this.remove(patchBbox);
   }
-  var tileBbox = this.getObjectByName(tile.id + 'bbox');
-  if (tileBbox) {
-    this.remove(tileBbox);
-  }
-};
-
-ChunkedECPSphere.prototype._animateTileOpacity = function (material, fadeTime, done) {
-  var self = this;
-
-  var toValue = fadeTime > 0 ? 1.0 : 0.0;
-  var opacity = material.uniforms.opacity.value;
-
-  var tweenOpacity = new TWEEN.Tween({opacity: opacity})
-      .to({opacity: 1.0}, Math.abs(fadeTime))
-      .easing(TWEEN.Easing.Linear.None)
-      .onUpdate(function () {
-        material.uniforms.opacity.value = this.opacity;
-      })
-      .onComplete(function () {
-        if (typeof done === 'function') {
-          done.call(self);
-        }
-      });
-  tweenOpacity.start();
 };
 
 ChunkedECPSphere.prototype.getMaxScreenSpaceError = function () {
@@ -179,8 +134,8 @@ ChunkedECPSphere.prototype.getRadius = function () {
   return this.radius;
 };
 
-ChunkedECPSphere.prototype.getTileRes = function () {
-  return this.tileRes;
+ChunkedECPSphere.prototype.getPatchRes = function () {
+  return this.patchRes;
 };
 
 ChunkedECPSphere.prototype.calculateCameraWorldPosition = function () {
@@ -192,38 +147,27 @@ ChunkedECPSphere.prototype.getCameraPosition = function () {
   return this.cameraWorldPosition.clone();
 };
 
-ChunkedECPSphere.prototype.getDistanceToTile = function (tile) {
-  // var minDist = Infinity;
-  // var camPos = this.getCameraPosition();
-
-  // tile.corners.forEach(function (corner) {
-  //   var dist = camPos.distanceTo(corner);
-  //   minDist = dist < minDist ? dist : minDist;
-  // }, this);
-
-  // return minDist;
-  // var bboxGeo = new THREE.BoundingBoxHelper(tile.getBoundingBox());
-  // console.log(tile.getBoundingBox());
-  return tile.getBoundingBox().distanceToPoint(this.getCameraPosition());
+ChunkedECPSphere.prototype.getDistanceToPatch = function (patch) {
+  return patch.getBoundingBox().distanceToPoint(this.getCameraPosition());
 };
 
 ChunkedECPSphere.prototype.getCamToCenter = function () {
   return this.getCameraPosition().multiplyScalar(-1);
 };
 
-ChunkedECPSphere.prototype.isTileInFrustum = function (tile) {
-  var tileBoundingBox = tile.getBoundingBox();
+ChunkedECPSphere.prototype.isPatchInFrustum = function (patch) {
+  var patchBoundingBox = patch.getBoundingBox();
 
-  if (this.frustum.intersectsBox(tileBoundingBox)) return true;
+  if (this.frustum.intersectsBox(patchBoundingBox)) return true;
   return false;
 };
 
-ChunkedECPSphere.prototype.getCamToTile = function (tile) {
+ChunkedECPSphere.prototype.getCamToPatch = function (patch) {
   var minDist = Infinity;
   var closestCorner = new THREE.Vector3();
   var camPos = this.getCameraPosition();
 
-  tile.corners.forEach(function (corner) {
+  patch.corners.forEach(function (corner) {
     var dist = camPos.distanceTo(corner);
 
     if (dist < minDist) {
@@ -239,8 +183,8 @@ ChunkedECPSphere.prototype.getPerspectiveScaling = function () {
   return this.perspectiveScaling;
 };
 
-ChunkedECPSphere.prototype.getBoundingBoxVisibleArea = function (tile) {
-  var bboxTris = tile.getBoundingBoxTriangles();
+ChunkedECPSphere.prototype.getBoundingBoxVisibleArea = function (patch) {
+  var bboxTris = patch.getBoundingBoxTriangles();
 
   // Project to sphere around camera
   var n = new THREE.Vector3();

@@ -11,7 +11,7 @@ require([
     "onterraSettings",
     "libs/scissTileLoader",
     "libs/tileProvider",
-    "libs/sphereTile",
+    "libs/spherePatch",
     "libs/chunkedCubeSphere",
     "libs/chunkedECPSphere",
     "libs/coordinateAxes",
@@ -38,19 +38,26 @@ function (tileVert, tileFrag, simplexNoise) {
      * Scene + camera
      */
     camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.00001*EARTH_RADIUS, EARTH_RADIUS*100);
-    camera.position.set(-EARTH_RADIUS*2, 0, 0);
+    camera.position.set(-EARTH_RADIUS*2, -EARTH_RADIUS*2, EARTH_RADIUS*2);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     scene = new THREE.Scene();
 
     THREE.ImageUtils.crossOrigin = '';
     var wmsProvider = new ScissWMSProvider();
-    var tileLoader = new ScissTileLoader({
+    var imageLoader = new ScissTileLoader({
       wmsProvider: wmsProvider,
       layer: 'Earth_Global_Mosaic_Pan_Sharpened'
     });
-    var tileProvider = new TileProvider({
-      tileLoader: tileLoader
+    var imageProvider = new TileProvider({
+      tileLoader: imageLoader
+    });
+    var terrainLoader = new ScissTileLoader({
+      wmsProvider: wmsProvider,
+      layer: 'Earth_heightmap'
+    });
+    var terrainProvider = new TileProvider({
+      tileLoader: terrainLoader
     });
 
     /**
@@ -58,13 +65,14 @@ function (tileVert, tileFrag, simplexNoise) {
      */
     chunkedCubeSphere = new ChunkedECPSphere({
       radius: EARTH_RADIUS,
-      tileRes: 32,
+      patchRes: 32,
       camera: camera,
       shaders: {
         vert: tileVert,
         frag: tileFrag
       },
-      tileProvider: tileProvider
+      tileProvider: imageProvider,
+      terrainProvider: terrainProvider
     });
 
     wmsProvider.onReady(function () {
