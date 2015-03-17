@@ -6,13 +6,22 @@ var SpherePatch = function (opts) {
   this.parent = opts.parent;
   this.master = opts.master;
   this.level = opts.level;
+
   this.tileProvider = opts.tileProvider;
   this.terrainProvider = opts.terrainProvider;
 
+  this.parentAlign = opts.parentAlign || null;
+
   // Defaults
-  this.loading = false;
   this.visible = true;
-  this.ready = false;
+  this.imageLoading = false;
+  this.imageReady = false;
+  this.terrainLoading = false;
+  this.terrainReady = false;
+
+  // Default texture alignment -> default use full texture
+  this.texAlign = new THREE.Vector2(0, 0);
+  this.texExtent = 1;
 
   this._onReadyTasks = [];
 
@@ -43,10 +52,14 @@ SpherePatch.prototype.update = function () {
     leafsReady = updateInfo.leafsReady;
     if (leafsReady) {
       childrenReady = true;
+
       this.removeFromMaster();
 
       if (levelsToLeaf > SpherePatch.REDUNDANCY_DEPTH) {
         this.removeTexture();
+      }
+      if (levelsToLeaf > SpherePatch.TERRAIN_START_DEPTH && !this.terrainReady) {
+        // this.requestNewTerrain();
       }
     }
   }
@@ -56,16 +69,16 @@ SpherePatch.prototype.update = function () {
     if (this.shouldSplit()) {
       this.split();
     } else if (this.shouldMerge()) {
-      if (!this.ready) {
+      if (!this.imageReady) {
         this.requestNewTexture();
       }
       this.onReady(function () {
         this.merge();
         this.addToMaster();
       }, this);
-    } else if (this.ready && !this.isSplit && !this.added) {
+    } else if (this.imageReady && !this.isSplit && !this.added) {
       this.addToMaster();
-    } else if (!this.ready && levelsToLeaf < SpherePatch.REDUNDANCY_DEPTH) {
+    } else if (!this.imageReady && levelsToLeaf < SpherePatch.REDUNDANCY_DEPTH) {
       this.requestNewTexture();
     }
   } else {
@@ -74,8 +87,8 @@ SpherePatch.prototype.update = function () {
   }
 
   return {
-    covered: !this.visible || this.ready || childrenReady,
-    leafsReady: leafsReady || (!this.isSplit && (this.ready || !this.visible)),
+    covered: !this.visible || this.imageReady || childrenReady,
+    leafsReady: leafsReady || (!this.isSplit && (this.imageReady || !this.visible)),
     levelsToLeaf: levelsToLeaf
   };
 };
@@ -98,6 +111,22 @@ SpherePatch.prototype.updateChildren = function () {
   };
 };
 
+SpherePatch.prototype.updateTextureAlignment = function () {
+  var prevExt = this.texExtent;
+  if (this.parent && !this.terrainReady) {
+    this.texAnchor = this.parent.texAnchor.clone().add(this.alignToParent.multiplyScalar(this.parent.texExtent));
+    this.texExtent = this.parent.texExtent*0.5;
+  } else { // reset to default
+    this.texAnchor.x = 0;
+    this.texAnchor.y = 0;
+    this.texExtent = 1;
+  }
+
+  if (prevExt != this.texExtent) {
+    this.terrain = parent.terrain;
+  }
+};
+
 /////////////////////
 /// Hooks
 /////////////////////
@@ -105,7 +134,7 @@ SpherePatch.prototype.updateChildren = function () {
 SpherePatch.prototype.onReady = function (fn, ctx) {
   this._onReadyTasks.push({fn: fn, ctx: ctx});
 
-  if (this.ready) {
+  if (this.imageReady) {
     this._onReadyNotify();
   }
 };
@@ -211,13 +240,13 @@ SpherePatch.prototype.getBoundingBoxCorners = function () {
 
   this.bboxCorners.push(min); // 0
 
-  this.bboxCorners.push(new THREE.Vector3(max.x, min.y, min.z)); // 1, minMaxX
-  this.bboxCorners.push(new THREE.Vector3(min.x, max.y, min.z)); // 2, minMaxY
-  this.bboxCorners.push(new THREE.Vector3(min.x, min.y, max.z)); // 3, minMaxZ
+  this.bboxCorners.push(new THREE.Vector3(max.x, min.y, min.z)); // 1, x
+  this.bboxCorners.push(new THREE.Vector3(min.x, max.y, min.z)); // 2, y
+  this.bboxCorners.push(new THREE.Vector3(min.x, min.y, max.z)); // 3, z
 
-  this.bboxCorners.push(new THREE.Vector3(min.x, max.y, max.z)); // 4, maxMinX
-  this.bboxCorners.push(new THREE.Vector3(max.x, min.y, max.z)); // 5, maxMinY
-  this.bboxCorners.push(new THREE.Vector3(max.x, max.y, min.z)); // 6, maxMinZ
+  this.bboxCorners.push(new THREE.Vector3(min.x, max.y, max.z)); // 4, yz
+  this.bboxCorners.push(new THREE.Vector3(max.x, min.y, max.z)); // 5, xz
+  this.bboxCorners.push(new THREE.Vector3(max.x, max.y, min.z)); // 6, xy
 
   this.bboxCorners.push(max); // 7
 
@@ -351,13 +380,13 @@ SpherePatch.prototype.getId = function () {
 /////////////////////
 
 SpherePatch.prototype.shouldMerge = function () {
-  if (this.isSplit) return this.level > 0 && SpherePatch.SPLIT_TOLERANCE >= this.getScreenSpaceError();
+  if (this.isSplit) return SpherePatch.SPLIT_TOLERANCE >= this.getScreenSpaceError();
   return false;
 };
 
 SpherePatch.prototype.shouldSplit = function () {
   if (this.isSplit) return false;
-  return this.level < this.master.getMaxLodLevel() && SpherePatch.SPLIT_TOLERANCE < this.getScreenSpaceError();
+  return this.level < this.master.getMaxLodLevel() - 1 && SpherePatch.SPLIT_TOLERANCE < this.getScreenSpaceError();
 };
 
 SpherePatch.prototype.getScreenSpaceError = function () {
@@ -409,7 +438,6 @@ SpherePatch.prototype.split = function () {
 
 /**
  * Collapse this tile into a leaf node
- * TODO: Children get stuck in limbo if they haven't finished loading
  */
 SpherePatch.prototype.merge = function () {
   if (this.isSplit) {
@@ -425,6 +453,54 @@ SpherePatch.prototype.merge = function () {
   }
 
   this.isSplit = false;
+};
+
+/////////////////////
+/// Textures
+/////////////////////
+
+SpherePatch.prototype.requestNewTexture = function () {
+  if (this.imageLoading) return;
+
+  this.imageLoading = true;
+  this.tileProvider.requestTile(this, function (texture) {
+    this.imageLoading = false;
+    if (!texture) return;
+
+    this.texture = texture;
+    this.imageReady = true;
+    this._onReadyNotify();
+  }, this);
+};
+
+SpherePatch.prototype.requestNewTerrain = function () {
+  if (this.terrainLoading) return;
+
+  this.terrainLoading = true;
+  this.terrainProvider.requestTile(this, function (texture) {
+    this.terrainLoading = false;
+    if (!texture) return;
+
+    this.terrain = texture;
+    this.terrainReady = true;
+    this._onReadyNotify();
+  }, this);
+};
+
+SpherePatch.prototype.removeTexture = function () {
+  if (this.texture) {
+    this.texture.dispose();
+    this.imageReady = false;
+    this.texture = undefined;
+  }
+};
+
+SpherePatch.prototype.removeTerrain = function () {
+  if (this.terrain) {
+    this.terrain.dispose();
+    this.terrainReady = false;
+    this.terrain = undefined;
+  }
 };
 
 /////////////////////
@@ -445,31 +521,9 @@ SpherePatch.prototype.addChildren = function () {
   this.topRight.addToMaster();
 };
 
-SpherePatch.prototype.requestNewTexture = function () {
-  if (this.loading) return;
-
-  this.loading = true;
-  this.tileProvider.requestTile(this, function (texture) {
-    this.loading = false;
-    if (!texture) return;
-
-    this.texture = texture;
-    this.ready = true;
-    this._onReadyNotify();
-  }, this);
-};
-
 SpherePatch.prototype.removeFromMaster = function () {
   this.master.removePatch(this);
   this.added = false;
-};
-
-SpherePatch.prototype.removeTexture = function () {
-  if (this.texture) {
-    this.texture.dispose();
-    this.ready = false;
-    this.texture = undefined;
-  }
 };
 
 /**
@@ -492,3 +546,4 @@ SpherePatch.SPLIT_TOLERANCE = 1.0;
 
 // How many levels above the leafs should a patch keep their texture?
 SpherePatch.REDUNDANCY_DEPTH = 4;
+SpherePatch.TERRAIN_START_DEPTH = 4;

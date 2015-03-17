@@ -31,23 +31,29 @@ ChunkedECPSphere.prototype = Object.create(THREE.Object3D.prototype);
 ChunkedECPSphere.prototype.init = function () {
   var layer = this.tileProvider.getActiveLayer();
   this.maxLevels = Math.min(layer.levels, this.maxLevels);
-  var baseResDeg = layer.resolutions[0].lat;
-  var baseResRad = MathUtils.degToRad(baseResDeg);
+
+  var startLevel = -1;
+  var baseRes = 360;
+  while (baseRes > 90 && ++startLevel < layer.resolutions.length) {
+    baseRes = layer.resolutions[startLevel].lat;
+  }
+
+  var baseResRad = MathUtils.degToRad(baseRes);
 
   for (var theta = Math.PI*0.5; theta > -Math.PI*0.5; theta -= baseResRad) {
     for (var phi = -Math.PI; phi < Math.PI; phi += baseResRad) {
-      this.addBasePatch(new THREE.Vector2(phi, theta), baseResRad);
+      this.addBasePatch(new THREE.Vector2(phi, theta), baseResRad, startLevel);
     }
   }
 };
 
-ChunkedECPSphere.prototype.addBasePatch = function (anchor, extent) {
+ChunkedECPSphere.prototype.addBasePatch = function (anchor, extent, level) {
   var rootPatch = new SpherePatch({
     anchor: anchor,
     extent: extent,
     parent: null,
     master: this,
-    level: 1,
+    level: level,
     tileProvider: this.tileProvider,
     terrainProvider: this.terrainProvider
   });
