@@ -86,6 +86,9 @@ ChunkedECPSphere.prototype.addPatch = function (patch) {
     level: {type: 'f', value: patch.level},
     tileTex: {type: 't', value: patch.texture},
     terrain: {type: 't', value: patch.terrain},
+    useTerrain: {type: 'i', value: !!patch.terrain ? 1 : 0},
+    texAnchor: {type: 'v2', value: patch.texAnchor},
+    texExtent: {type: 'f', value: patch.texExtent}
     // opacity: {type: "f", value: 0.0}
   };
 
@@ -123,6 +126,16 @@ ChunkedECPSphere.prototype.removePatch = function (patch) {
   var patchBbox = this.getObjectByName(patch.id + 'bbox');
   if (patchBbox) {
     this.remove(patchBbox);
+  }
+};
+
+ChunkedECPSphere.prototype.uppdatePatchTerrain = function (patch) {
+  var selectedPatch = this.getObjectByName(patch.id);
+  if (selectedPatch) {
+    selectedPatch.material.uniforms.terrain.value = patch.terrain;
+    selectedPatch.material.uniforms.useTerrain.value = !!patch.terrain ? 1 : 0;
+    selectedPatch.material.uniforms.texAnchor.value = patch.texAnchor;
+    selectedPatch.material.uniforms.texExtent.value = patch.texExtent;
   }
 };
 

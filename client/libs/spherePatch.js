@@ -10,7 +10,7 @@ var SpherePatch = function (opts) {
   this.tileProvider = opts.tileProvider;
   this.terrainProvider = opts.terrainProvider;
 
-  this.parentAlign = opts.parentAlign || null;
+  this.parentAlign = opts.parentAlign || new THREE.Vector2(0, 0);
 
   // Defaults
   this.visible = true;
@@ -18,9 +18,10 @@ var SpherePatch = function (opts) {
   this.imageReady = false;
   this.terrainLoading = false;
   this.terrainReady = false;
+  this.terrainLevel = -1;
 
   // Default texture alignment -> default use full texture
-  this.texAlign = new THREE.Vector2(0, 0);
+  this.texAnchor = new THREE.Vector2(0, 0);
   this.texExtent = 1;
 
   this._onReadyTasks = [];
@@ -59,13 +60,18 @@ SpherePatch.prototype.update = function () {
         this.removeTexture();
       }
       if (levelsToLeaf > SpherePatch.TERRAIN_START_DEPTH && !this.terrainReady) {
-        // this.requestNewTerrain();
+        this.requestNewTerrain();
       }
     }
   }
 
   this.visible = this.isVisible();
   if (this.visible) {
+    // Look for new terrain
+    if (this.getTerrainFromAncestor()) {
+      this.master.uppdatePatchTerrain(this);
+    }
+
     if (this.shouldSplit()) {
       this.split();
     } else if (this.shouldMerge()) {
@@ -114,7 +120,7 @@ SpherePatch.prototype.updateChildren = function () {
 SpherePatch.prototype.updateTextureAlignment = function () {
   var prevExt = this.texExtent;
   if (this.parent && !this.terrainReady) {
-    this.texAnchor = this.parent.texAnchor.clone().add(this.alignToParent.multiplyScalar(this.parent.texExtent));
+    this.texAnchor = this.parent.texAnchor.clone().add(this.parentAlign.clone().multiplyScalar(this.parent.texExtent));
     this.texExtent = this.parent.texExtent*0.5;
   } else { // reset to default
     this.texAnchor.x = 0;
@@ -123,7 +129,7 @@ SpherePatch.prototype.updateTextureAlignment = function () {
   }
 
   if (prevExt != this.texExtent) {
-    this.terrain = parent.terrain;
+    this.master.uppdatePatchTerrain(this);
   }
 };
 
@@ -414,23 +420,28 @@ SpherePatch.prototype.split = function () {
     parent: this,
     master: this.master,
     level: this.level + 1,
-    tileProvider: this.tileProvider
+    tileProvider: this.tileProvider,
+    terrainProvider: this.terrainProvider
   }
 
   // TL
   opts.anchor = this.anchor.clone();
+  opts.parentAlign = new THREE.Vector2(0, 0.5);
   this.topLeft = new SpherePatch(opts);
 
   // TR
   opts.anchor = new THREE.Vector2(this.anchor.x + nextExtent, this.anchor.y);
+  opts.parentAlign = new THREE.Vector2(0.5, 0.5);
   this.topRight = new SpherePatch(opts);
 
   // BL
   opts.anchor = new THREE.Vector2(this.anchor.x, this.anchor.y - nextExtent);
+  opts.parentAlign = new THREE.Vector2(0, 0);
   this.bottomLeft = new SpherePatch(opts);
 
   // BR
   opts.anchor = new THREE.Vector2(this.anchor.x + nextExtent, this.anchor.y - nextExtent);
+  opts.parentAlign = new THREE.Vector2(0.5, 0);
   this.bottomRight = new SpherePatch(opts);
 
   this.isSplit = true;
@@ -483,8 +494,23 @@ SpherePatch.prototype.requestNewTerrain = function () {
 
     this.terrain = texture;
     this.terrainReady = true;
-    this._onReadyNotify();
   }, this);
+};
+
+SpherePatch.prototype.getTerrainFromAncestor = function () {
+  var ancestor = this;
+  var texAnchor = new THREE.Vector2(0, 0);
+  var texExtent = 1;
+  while (!ancestor.terrainReady) {
+    texExtent *= 0.5;
+    texAnchor.multiplyScalar(0.5).add(ancestor.parentAlign);
+    ancestor = ancestor.parent;
+    if (!ancestor) return false;
+  }
+
+  this.terrain = ancestor.terrain;
+  this.texAnchor = texAnchor;
+  this.texExtent = texExtent;
 };
 
 SpherePatch.prototype.removeTexture = function () {
@@ -546,4 +572,4 @@ SpherePatch.SPLIT_TOLERANCE = 1.0;
 
 // How many levels above the leafs should a patch keep their texture?
 SpherePatch.REDUNDANCY_DEPTH = 4;
-SpherePatch.TERRAIN_START_DEPTH = 4;
+SpherePatch.TERRAIN_START_DEPTH = 3;
