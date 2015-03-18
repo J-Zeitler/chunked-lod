@@ -161,73 +161,15 @@ SpherePatch.prototype._onReadyNotify = function () {
 /////////////////////
 
 SpherePatch.prototype.getGeometry = function () {
-  if (this.geometry) return this.geometry;
-
-  this.geometry = new THREE.BufferGeometry();
-  var res = this.master.getPatchRes();
-
-  // Positions + uvs
-  var resMinus1 = res - 1;
-  var scale = this.extent/resMinus1;
-  var positions = new Float32Array(res*res*3);
-  var uvs = new Float32Array(res*res*2);
-  for (var y = 0; y < res; y++) {
-    for (var x = 0; x < res; x++) {
-      var posOffset = (y*res + x)*3;
-      var phi = this.anchorPhi + x*scale;
-      var theta = this.anchorTheta + y*scale;
-
-      if (phi > 2.0*Math.PI) {
-        phi = 2.0*Math.PI;
-      }
-      if (theta > Math.PI) {
-        theta = Math.PI;
-      }
-
-      var pos = MathUtils.polarToCartesian(phi, theta, this.master.getRadius());
-
-      positions[posOffset] = pos.x;
-      positions[posOffset + 1] = pos.y;
-      positions[posOffset + 2] = pos.z;
-
-      var uvOffset = (y*res + x)*2;
-      uvs[uvOffset] = x/resMinus1;
-      uvs[uvOffset + 1] = 1 - y/resMinus1;
-    }
+  if (!this.geometry) {
+    this.geometry = new THREE.SpherePatchGeometry(
+      new THREE.Vector2(this.anchorPhi, this.anchorTheta),
+      this.extent,
+      this.master.getPatchRes(),
+      this.master.getRadius()
+    );
   }
 
-  // Indices
-  var segs = (res - 1)*(res - 1);
-  var indexData = [];
-  for (var y = 0; y < (res - 1); y++) {
-    for (var x = 1; x < res; x++) {
-      var i = y*res + x;
-
-      var self = i;
-      var down = i + res;
-      var left = i - 1;
-      var leftDown = left + res;
-
-      // top left
-      indexData.push(self);
-      indexData.push(left);
-      indexData.push(leftDown);
-
-      // bottom right
-      indexData.push(self);
-      indexData.push(leftDown);
-      indexData.push(down);
-    }
-  }
-
-  var indices = new Uint16Array(segs*3*2);
-  indices.set(indexData);
-
-  this.geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
-  this.geometry.addAttribute('index', new THREE.BufferAttribute(indices, 1));
-  this.geometry.addAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-
-  this.geometry.computeBoundingBox();
   return this.geometry;
 };
 
@@ -236,72 +178,11 @@ SpherePatch.prototype.getBoundingBox = function () {
 };
 
 SpherePatch.prototype.getBoundingBoxCorners = function () {
-  if (this.bboxCorners) return this.bboxCorners;
-
-  this.bboxCorners = [];
-  var bbox = this.getBoundingBox();
-
-  var min = bbox.min.clone();
-  var max = bbox.max.clone();
-
-  this.bboxCorners.push(min); // 0
-
-  this.bboxCorners.push(new THREE.Vector3(max.x, min.y, min.z)); // 1, x
-  this.bboxCorners.push(new THREE.Vector3(min.x, max.y, min.z)); // 2, y
-  this.bboxCorners.push(new THREE.Vector3(min.x, min.y, max.z)); // 3, z
-
-  this.bboxCorners.push(new THREE.Vector3(min.x, max.y, max.z)); // 4, yz
-  this.bboxCorners.push(new THREE.Vector3(max.x, min.y, max.z)); // 5, xz
-  this.bboxCorners.push(new THREE.Vector3(max.x, max.y, min.z)); // 6, xy
-
-  this.bboxCorners.push(max); // 7
-
-  return this.bboxCorners;
+  return this.getGeometry().getBoundingBoxCorners();
 };
 
 SpherePatch.prototype.getBoundingBoxTriangles = function () {
-  if (this.bboxTris) return this.bboxTris;
-
-  this.bboxTris = {};
-
-  this.bboxTris.corners = this.getBoundingBoxCorners();
-  this.bboxTris.indices = [];
-
-  var min = 0;
-  var x = 1;
-  var y = 2;
-  var z = 3;
-
-  var yz = 4;
-  var xz = 5;
-  var xy = 6;
-  var max = 7;
-
-  // front
-  this.bboxTris.indices.push([min, xz, z]);
-  this.bboxTris.indices.push([min, x, xz]);
-
-  // back
-  this.bboxTris.indices.push([max, y, yz]);
-  this.bboxTris.indices.push([max, xy, y]);
-
-  // left
-  this.bboxTris.indices.push([min, z, yz]);
-  this.bboxTris.indices.push([min, yz, y]);
-
-  // right
-  this.bboxTris.indices.push([max, xz, x]);
-  this.bboxTris.indices.push([max, x, xy]);
-
-  // top
-  this.bboxTris.indices.push([max, yz, z]);
-  this.bboxTris.indices.push([max, z, xz]);
-
-  // bottom
-  this.bboxTris.indices.push([min, y, xy]);
-  this.bboxTris.indices.push([min, xy, x]);
-
-  return this.bboxTris;
+  return this.getGeometry().getBoundingBoxTriangles();
 };
 
 SpherePatch.prototype.calculateCorners = function () {

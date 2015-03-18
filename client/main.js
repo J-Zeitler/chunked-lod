@@ -12,6 +12,7 @@ require([
     "libs/scissTileLoader",
     "libs/tileProvider",
     "libs/spherePatch",
+    "libs/spherePatchGeometry",
     "libs/chunkedECPSphere",
     "libs/coordinateAxes",
     "libs/vendor/orbitControls",
