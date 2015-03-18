@@ -450,7 +450,7 @@ SpherePatch.prototype.destroy = function () {
 /// Static
 /////////////////////
 
-SpherePatch.SPLIT_FACTOR = 1.0;
+SpherePatch.SPLIT_FACTOR = 2.0;
 SpherePatch.SPLIT_TOLERANCE = 1.0;
 
 // How many levels above the leafs should a patch keep its texture?
