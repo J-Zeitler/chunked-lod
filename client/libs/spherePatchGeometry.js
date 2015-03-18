@@ -1,7 +1,9 @@
 'use strict';
 
 /**
- * Creates a curved patch geometry to approximate a part of a sphere
+ * Creates a curved patch geometry to approximate a part of a sphere.
+ * Surrounds the patch with a skirt to hide cracks in the surface.
+ *
  * @param THREE.Vector2   anchor    position (φ,θ) on sphere
  * @param Number          extent    equirectangular extend from (φ,θ) to (φ + extent,θ + extent)
  * @param Number          res       number of vertices along each direction
@@ -20,14 +22,24 @@ THREE.SpherePatchGeometry = function (anchor, extent, res, radius) {
 
   // Positions + uvs
   var resMinus1 = this.res - 1;
+  var resPlus1 = this.res + 1;
+  var resPlus2 = this.res + 2;
   var scale = this.extent/resMinus1;
-  var positions = new Float32Array(this.res*this.res*3);
-  var uvs = new Float32Array(this.res*this.res*2);
-  for (var y = 0; y < this.res; y++) {
-    for (var x = 0; x < this.res; x++) {
-      var posOffset = (y*this.res + x)*3;
-      var phi = this.anchor.x + x*scale;
-      var theta = this.anchor.y + y*scale;
+  var positions = new Float32Array(resPlus2*resPlus2*3);
+  var uvs = new Float32Array(resPlus2*resPlus2*2);
+  for (var y = 0; y < resPlus2; y++) {
+    for (var x = 0; x < resPlus2; x++) {
+      var r = this.radius;
+      if (x < 1 || x > this.res || y < 0 || y > this.res) {
+        r *= 0.9;
+      }
+
+      var xx = x > this.res ? x - 2 : (x > 0 ? x - 1 : x);
+      var yy = y > this.res ? y - 2 : (y > 0 ? y - 1 : y);
+
+      var posOffset = (y*resPlus2 + x)*3;
+      var phi = this.anchor.x + xx*scale;
+      var theta = this.anchor.y + yy*scale;
 
       // Tuck verts in at south pole and on antimeridian
       if (phi > 2.0*Math.PI) {
@@ -37,29 +49,29 @@ THREE.SpherePatchGeometry = function (anchor, extent, res, radius) {
         theta = Math.PI;
       }
 
-      var pos = MathUtils.polarToCartesian(phi, theta, this.radius);
+      var pos = MathUtils.polarToCartesian(phi, theta, r);
 
       positions[posOffset] = pos.x;
       positions[posOffset + 1] = pos.y;
       positions[posOffset + 2] = pos.z;
 
-      var uvOffset = (y*this.res + x)*2;
-      uvs[uvOffset] = x/resMinus1;
-      uvs[uvOffset + 1] = 1 - y/resMinus1;
+      var uvOffset = (y*resPlus2 + x)*2;
+      uvs[uvOffset] = xx/resMinus1;
+      uvs[uvOffset + 1] = 1 - yy/resMinus1;
     }
   }
 
   // Indices
-  var segs = (this.res - 1)*(this.res - 1);
+  var segs = (resPlus1)*(resPlus1);
   var indexData = [];
-  for (var y = 0; y < (this.res - 1); y++) {
-    for (var x = 1; x < this.res; x++) {
-      var i = y*this.res + x;
+  for (var y = 0; y < resPlus1; y++) {
+    for (var x = 1; x < resPlus2; x++) {
+      var i = y*resPlus2 + x;
 
       var self = i;
-      var down = i + this.res;
+      var down = i + resPlus2;
       var left = i - 1;
-      var leftDown = left + this.res;
+      var leftDown = left + resPlus2;
 
       // top left
       indexData.push(self);
