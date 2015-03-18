@@ -90,6 +90,7 @@ SpherePatch.prototype.update = function () {
   } else {
     this.removeFromMaster();
     this.removeTexture();
+    this.removeTerrain();
   }
 
   return {
@@ -403,7 +404,7 @@ SpherePatch.prototype.removeTexture = function () {
 };
 
 SpherePatch.prototype.removeTerrain = function () {
-  if (this.terrain) {
+  if (this.terrain && this.terrainReady) {
     this.terrain.dispose();
     this.terrainReady = false;
     this.terrain = undefined;
@@ -434,7 +435,7 @@ SpherePatch.prototype.removeFromMaster = function () {
 };
 
 /**
- * Remove and collapse this tile
+ * Collapse and remove this patch
  */
 SpherePatch.prototype.destroy = function () {
   if (this.isSplit) {
@@ -442,6 +443,7 @@ SpherePatch.prototype.destroy = function () {
   }
   this.removeFromMaster();
   this.removeTexture();
+  this.removeTerrain();
 };
 
 /////////////////////
