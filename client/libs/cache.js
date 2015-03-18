@@ -68,8 +68,7 @@ Cache.prototype.insert = function (key, value) {
   }
 
   if (this.length >= this.capacity) {
-    this._removeNode(this.queue.tail.prev);
-    this.length--;
+    this.remove(this.queue.tail.prev.key);
   }
 
   var node = this.hashedItems[key];
