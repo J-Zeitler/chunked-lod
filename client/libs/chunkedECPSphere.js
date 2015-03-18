@@ -82,11 +82,19 @@ ChunkedECPSphere.prototype.addPatch = function (patch) {
 
   var patchGeometry = patch.getGeometry();
 
+  var useTerrain = !!patch.terrain ? 1 : 0;
+  var terrainDims = new THREE.Vector2(1, 1);
+  if (useTerrain) {
+    terrainDims.x = patch.terrain.image.width;
+    terrainDims.y = patch.terrain.image.height;
+  }
+
   var patchUniforms = {
     level: {type: 'f', value: patch.level},
     tileTex: {type: 't', value: patch.texture},
     terrain: {type: 't', value: patch.terrain},
-    useTerrain: {type: 'i', value: !!patch.terrain ? 1 : 0},
+    useTerrain: {type: 'i', value: useTerrain},
+    terrainDims: {type: 'v2', value: terrainDims},
     texAnchor: {type: 'v2', value: patch.texAnchor},
     texExtent: {type: 'f', value: patch.texExtent}
     // opacity: {type: "f", value: 0.0}

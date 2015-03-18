@@ -5,11 +5,41 @@ uniform int useTerrain;
 
 uniform vec2 texAnchor;
 uniform float texExtent;
+uniform vec2 terrainDims;
 
 varying vec2 uVu;
 
 #define MAX_MAP_VALUE 65536.0
 #define MAX_HEIGHT 32767.0
+
+float sampleCropped(sampler2D tex, vec2 uv) {
+  float s = texture2D(tex, uv).r;
+  float signShift = step(0.5, s);
+  s -= signShift;
+  s *= 2.0;
+
+  return s;
+}
+
+float textureFetchLerp(sampler2D tex, vec2 uv) {
+  vec2 uvScaled = uv*terrainDims;
+  vec2 topLeft = floor(uvScaled);
+  vec2 topRight = vec2(topLeft.x + 1.0, topLeft.y);
+  vec2 bottomLeft = vec2(topLeft.x, topLeft.y + 1.0);
+  vec2 bottomRight = vec2(topLeft.x + 1.0, topLeft.y + 1.0);
+
+  vec2 t = (uvScaled - topLeft);
+
+  float sTopLeft = sampleCropped(tex, topLeft/terrainDims);
+  float sTopRight = sampleCropped(tex, topRight/terrainDims);
+  float sBottomLeft = sampleCropped(tex, bottomLeft/terrainDims);
+  float sBottomRight = sampleCropped(tex, bottomRight/terrainDims);
+
+  // bilerp
+  return (sTopLeft*(1.0 - t.x) + sTopRight*t.x)*(1.0 - t.y) +
+         (sBottomLeft*(1.0 - t.x) + sBottomRight*t.x)*t.y;
+}
+
 void main() {
   uVu = uv;
 
@@ -18,10 +48,7 @@ void main() {
   vec2 terrainUV = texAnchor + texExtent*uv;
 
   if (useTerrain == 1) {
-    float height = texture2D(terrain, terrainUV).r;
-    float signShift = step(0.50001, height);
-    height -= signShift;
-    height *= 2.0;
+    float height = textureFetchLerp(terrain, terrainUV);
 
     vec3 heightOffset = MAX_MAP_VALUE*height*normalize(position);
     pos += heightOffset;
