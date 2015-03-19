@@ -13,6 +13,9 @@ var ChunkedECPSphere = function (opts) {
   this.tileProvider = opts.tileProvider // ... or dynamic ones
   this.terrainProvider = opts.terrainProvider;
 
+  this.fullImage = null;
+  this.fullTerrain = null;
+
   this.vertShader = opts.shaders.vert;
   this.fragShader = opts.shaders.frag;
 
@@ -29,6 +32,16 @@ var ChunkedECPSphere = function (opts) {
 ChunkedECPSphere.prototype = Object.create(THREE.Object3D.prototype);
 
 ChunkedECPSphere.prototype.init = function () {
+  // Prefetch full textures
+  this.tileProvider.requestFull(function (texture) {
+    this.fullTexture = texture;
+  }, this);
+
+  this.terrainProvider.requestFull(function (texture) {
+    this.fullTerrain = texture;
+  }, this);
+
+  // Add base patches
   var layer = this.tileProvider.getActiveLayer();
   this.maxLevels = Math.min(layer.levels, this.maxLevels);
 
@@ -96,12 +109,18 @@ ChunkedECPSphere.prototype.addPatch = function (patch) {
     useTerrain: {type: 'i', value: useTerrain},
     terrainDims: {type: 'v2', value: terrainDims},
     texAnchor: {type: 'v2', value: patch.texAnchor},
-    texExtent: {type: 'f', value: patch.texExtent}
-    // opacity: {type: "f", value: 0.0}
+    texExtent: {type: 'f', value: patch.texExtent},
+    fullTexture: {type: 't', value: this.fullTexture},
+    fullTerrain: {type: 't', value: this.fullTerrain}
+  };
+
+  var patchAttributes = {
+    phiTheta: {type: 'v2', value: null}
   };
 
   var patchMaterial = new THREE.ShaderMaterial({
     uniforms: patchUniforms,
+    attributes: patchAttributes,
     vertexShader: this.vertShader,
     fragmentShader: this.fragShader,
     transparent: true
@@ -251,10 +270,7 @@ ChunkedECPSphere.prototype.getBoundingBoxVisibleArea = function (patch) {
     var meanX = (tri[0].x + tri[1].x + tri[2].x)/3;
     var meanY = (tri[0].y + tri[1].y + tri[2].y)/3;
 
-    // -e^(-x^2-y^2)+2, domain: R^2, range: [1, 2)
-    var unbiasMid = -Math.pow(Math.E, -meanX*meanX - meanY*meanY) + 2;
-
-    visibleArea += triarea(tri[0], tri[1], tri[2]); //*unbiasMid;
+    visibleArea += triarea(tri[0], tri[1], tri[2]);
   });
 
   return visibleArea;

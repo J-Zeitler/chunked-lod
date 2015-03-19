@@ -11,8 +11,6 @@ var ScissTileLoader = function (opts) {
   this.loadMap = {};
 };
 
-// ScissTileLoader.prototype = Object.create(TileLoader.prototype);
-
 ScissTileLoader.prototype.getUrl = function (patch) {
   var SWNE = patch.getCornersDeg();
   var targetUrl = this.wmsProvider.getTileUrl(SWNE[0], SWNE[1], this.layer);
@@ -22,6 +20,18 @@ ScissTileLoader.prototype.getUrl = function (patch) {
 ScissTileLoader.prototype.loadTileTexture = function (patch, done, ctx) {
   var url = this.getUrl(patch);
   return this.loadTextureByUrl(url, done, ctx);
+};
+
+ScissTileLoader.prototype.loadFullTexture = function (done, ctx) {
+  var fullTexUrl = document.URL + 'textures/' + this.layer + '_Full.png';
+  if (this.fullTexture) {
+    done.call(ctx, this.fullTexture);
+  } else {
+    this.loadTextureByUrl(fullTexUrl, function (img) {
+      this.fullTexture = img;
+      done.call(ctx, img);
+    }, this);
+  }
 };
 
 ScissTileLoader.prototype.loadTextureByUrl = function (url, done, ctx) {

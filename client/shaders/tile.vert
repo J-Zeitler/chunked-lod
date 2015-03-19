@@ -7,10 +7,16 @@ uniform vec2 texAnchor;
 uniform float texExtent;
 uniform vec2 terrainDims;
 
+attribute vec2 phiTheta;
+
 varying vec2 uVu;
+varying vec2 phiThetaLerp;
 
 #define MAX_MAP_VALUE 65536.0
 #define MAX_HEIGHT 32767.0
+
+#define PI 3.141592653589793
+#define TWO_PI 6.283185307179586
 
 float sampleCropped(sampler2D tex, vec2 uv) {
   float s = texture2D(tex, uv).r;
@@ -42,6 +48,8 @@ float textureFetchLerp(sampler2D tex, vec2 uv) {
 
 void main() {
   uVu = uv;
+  // flip y
+  phiThetaLerp = vec2(phiTheta.x, PI - phiTheta.y);
 
   vec3 pos = position;
 

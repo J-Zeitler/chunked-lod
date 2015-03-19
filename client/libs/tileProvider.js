@@ -12,6 +12,12 @@ var TileProvider = function (opts) {
   this.currentRequests = new Set();
 };
 
+TileProvider.prototype.requestFull = function (done, ctx) {
+  this.tileLoader.loadFullTexture(function (img) {
+    TileProvider.returnAsTexture(img, done, ctx, this.noFilter);
+  }, this);
+};
+
 TileProvider.prototype.requestTile = function (patch, done, ctx) {
   var url = this.tileLoader.getUrl(patch);
 

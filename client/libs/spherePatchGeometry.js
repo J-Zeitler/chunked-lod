@@ -27,6 +27,7 @@ THREE.SpherePatchGeometry = function (anchor, extent, res, radius) {
   var scale = this.extent/resMinus1;
   var positions = new Float32Array(resPlus2*resPlus2*3);
   var uvs = new Float32Array(resPlus2*resPlus2*2);
+  var phiTheta = new Float32Array(resPlus2*resPlus2*2);
   for (var y = 0; y < resPlus2; y++) {
     for (var x = 0; x < resPlus2; x++) {
       var r = this.radius;
@@ -59,6 +60,9 @@ THREE.SpherePatchGeometry = function (anchor, extent, res, radius) {
       var uvOffset = (y*resPlus2 + x)*2;
       uvs[uvOffset] = xx/resMinus1;
       uvs[uvOffset + 1] = 1 - yy/resMinus1;
+
+      phiTheta[uvOffset] = phi;
+      phiTheta[uvOffset + 1] = theta;
     }
   }
 
@@ -90,6 +94,7 @@ THREE.SpherePatchGeometry = function (anchor, extent, res, radius) {
   indices.set(indexData);
 
   this.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+  this.addAttribute('phiTheta', new THREE.BufferAttribute(phiTheta, 2));
   this.addAttribute('index', new THREE.BufferAttribute(indices, 1));
   this.addAttribute('uv', new THREE.BufferAttribute(uvs, 2));
 
