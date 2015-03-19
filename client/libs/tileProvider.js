@@ -46,7 +46,6 @@ TileProvider.returnAsTexture = function (img, done, ctx, noFilter) {
 
   texture.needsUpdate = true;
 
-
   if (noFilter) {
     texture.generateMipmaps = false;
     texture.magFilter = THREE.NearestFilter;

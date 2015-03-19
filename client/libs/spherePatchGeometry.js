@@ -34,6 +34,7 @@ THREE.SpherePatchGeometry = function (anchor, extent, res, radius) {
         r *= (1.0 - 0.05*this.extent);
       }
 
+      // Skirts inherit their x,y values
       var xx = x > this.res ? x - 2 : (x > 0 ? x - 1 : x);
       var yy = y > this.res ? y - 2 : (y > 0 ? y - 1 : y);
 
