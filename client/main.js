@@ -16,6 +16,7 @@ require([
     "libs/lodSphere",
     "libs/coordinateAxes",
     "libs/vendor/orbitControls",
+    "libs/customTrackballControls",
     "libs/planetControls"
 ],
 
@@ -40,6 +41,7 @@ function (tileVert, tileFrag, simplexNoise) {
     camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.0001*EARTH_RADIUS, EARTH_RADIUS*100);
     camera.position.set(-EARTH_RADIUS*2, -EARTH_RADIUS*2, EARTH_RADIUS*2);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
+    camera.up.set(0, 0, 1);
 
     scene = new THREE.Scene();
 
@@ -93,14 +95,12 @@ function (tileVert, tileFrag, simplexNoise) {
     /**
      * Camera controls
      */
-    // controls = new THREE.OrbitControls(camera);
+    // controls = new THREE.TrackballControls(camera);
     controls = new PlanetControls({
       camera: camera,
       planetRadius: EARTH_RADIUS,
       cube: cube
     });
-
-    console.log(camera);
 
     /**
      * Renderer

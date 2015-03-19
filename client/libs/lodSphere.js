@@ -127,8 +127,8 @@ THREE.LODSphere.prototype.addPatch = function (patch) {
     transparent: true
   });
 
-  patchMaterial.wireframe = true;
-  patchMaterial.wireframeLinewidth = 1.0;
+  // patchMaterial.wireframe = true;
+  // patchMaterial.wireframeLinewidth = 1.0;
 
   var patchMesh = new THREE.Mesh(
     patchGeometry,
