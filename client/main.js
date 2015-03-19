@@ -13,7 +13,7 @@ require([
     "libs/tileProvider",
     "libs/spherePatch",
     "libs/spherePatchGeometry",
-    "libs/chunkedECPSphere",
+    "libs/lodSphere",
     "libs/coordinateAxes",
     "libs/vendor/orbitControls",
     "libs/planetControls"
@@ -37,7 +37,7 @@ function (tileVert, tileFrag, simplexNoise) {
     /**
      * Scene + camera
      */
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.00001*EARTH_RADIUS, EARTH_RADIUS*100);
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.0001*EARTH_RADIUS, EARTH_RADIUS*100);
     camera.position.set(-EARTH_RADIUS*2, -EARTH_RADIUS*2, EARTH_RADIUS*2);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
@@ -64,7 +64,7 @@ function (tileVert, tileFrag, simplexNoise) {
     /**
      * Scene objects
      */
-    lodSphere = new ChunkedECPSphere({
+    lodSphere = new THREE.LODSphere({
       radius: EARTH_RADIUS,
       patchRes: 32,
       camera: camera,
@@ -93,11 +93,14 @@ function (tileVert, tileFrag, simplexNoise) {
     /**
      * Camera controls
      */
+    // controls = new THREE.OrbitControls(camera);
     controls = new PlanetControls({
       camera: camera,
       planetRadius: EARTH_RADIUS,
       cube: cube
     });
+
+    console.log(camera);
 
     /**
      * Renderer

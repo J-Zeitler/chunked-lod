@@ -1,5 +1,6 @@
-var ChunkedECPSphere = function (opts) {
+THREE.LODSphere = function (opts) {
   THREE.Object3D.call(this);
+  this.type = 'LODSphere';
 
   opts = opts || {};
 
@@ -29,9 +30,9 @@ var ChunkedECPSphere = function (opts) {
   this.cameraViewProjection = new THREE.Matrix4();
 };
 
-ChunkedECPSphere.prototype = Object.create(THREE.Object3D.prototype);
+THREE.LODSphere.prototype = Object.create(THREE.Object3D.prototype);
 
-ChunkedECPSphere.prototype.init = function () {
+THREE.LODSphere.prototype.init = function () {
   // Prefetch full textures
   this.tileProvider.requestFull(function (texture) {
     this.fullTexture = texture;
@@ -60,7 +61,7 @@ ChunkedECPSphere.prototype.init = function () {
   }
 };
 
-ChunkedECPSphere.prototype.addBasePatch = function (anchor, extent, level) {
+THREE.LODSphere.prototype.addBasePatch = function (anchor, extent, level) {
   var rootPatch = new SpherePatch({
     anchor: anchor,
     extent: extent,
@@ -74,7 +75,7 @@ ChunkedECPSphere.prototype.addBasePatch = function (anchor, extent, level) {
   this.basePatches.push(rootPatch);
 };
 
-ChunkedECPSphere.prototype.update = function () {
+THREE.LODSphere.prototype.update = function () {
   this.camera.updateMatrix();
   this.camera.updateMatrixWorld();
   this.camera.matrixWorldInverse.getInverse(this.camera.matrixWorld);
@@ -89,7 +90,7 @@ ChunkedECPSphere.prototype.update = function () {
   });
 };
 
-ChunkedECPSphere.prototype.addPatch = function (patch) {
+THREE.LODSphere.prototype.addPatch = function (patch) {
   var selectedPatch = this.getObjectByName(patch.id);
   if (selectedPatch) return; // already added
 
@@ -126,8 +127,8 @@ ChunkedECPSphere.prototype.addPatch = function (patch) {
     transparent: true
   });
 
-  // patchMaterial.wireframe = true;
-  // patchMaterial.wireframeLinewidth = 1.0;
+  patchMaterial.wireframe = true;
+  patchMaterial.wireframeLinewidth = 1.0;
 
   var patchMesh = new THREE.Mesh(
     patchGeometry,
@@ -143,7 +144,7 @@ ChunkedECPSphere.prototype.addPatch = function (patch) {
   // this.add(bbox);
 };
 
-ChunkedECPSphere.prototype.removePatch = function (patch) {
+THREE.LODSphere.prototype.removePatch = function (patch) {
   var selectedPatch = this.getObjectByName(patch.id);
   if (selectedPatch) {
     selectedPatch.geometry.dispose();
@@ -156,7 +157,7 @@ ChunkedECPSphere.prototype.removePatch = function (patch) {
   }
 };
 
-ChunkedECPSphere.prototype.uppdatePatchTerrain = function (patch) {
+THREE.LODSphere.prototype.uppdatePatchTerrain = function (patch) {
   var selectedPatch = this.getObjectByName(patch.id);
   if (selectedPatch) {
     selectedPatch.material.uniforms.terrain.value = patch.terrain;
@@ -166,51 +167,51 @@ ChunkedECPSphere.prototype.uppdatePatchTerrain = function (patch) {
   }
 };
 
-ChunkedECPSphere.prototype.getMaxScreenSpaceError = function () {
+THREE.LODSphere.prototype.getMaxScreenSpaceError = function () {
   return this.maxScreenSpaceError;
 };
 
-ChunkedECPSphere.prototype.getMaxLodLevel = function () {
+THREE.LODSphere.prototype.getMaxLodLevel = function () {
   return this.maxLevels;
 };
 
-ChunkedECPSphere.prototype.getScale = function () {
+THREE.LODSphere.prototype.getScale = function () {
   return this.radius*2;
 };
 
-ChunkedECPSphere.prototype.getRadius = function () {
+THREE.LODSphere.prototype.getRadius = function () {
   return this.radius;
 };
 
-ChunkedECPSphere.prototype.getPatchRes = function () {
+THREE.LODSphere.prototype.getPatchRes = function () {
   return this.patchRes;
 };
 
-ChunkedECPSphere.prototype.calculateCameraWorldPosition = function () {
+THREE.LODSphere.prototype.calculateCameraWorldPosition = function () {
   this.camera.updateMatrix();
-  this.cameraWorldPosition = this.camera.position.clone().applyMatrix4(this.camera.parent.matrix);
+  this.cameraWorldPosition = this.camera.getWorldPosition().clone();
 };
 
-ChunkedECPSphere.prototype.getCameraPosition = function () {
+THREE.LODSphere.prototype.getCameraPosition = function () {
   return this.cameraWorldPosition.clone();
 };
 
-ChunkedECPSphere.prototype.getDistanceToPatch = function (patch) {
+THREE.LODSphere.prototype.getDistanceToPatch = function (patch) {
   return patch.getBoundingBox().distanceToPoint(this.getCameraPosition());
 };
 
-ChunkedECPSphere.prototype.getCamToCenter = function () {
+THREE.LODSphere.prototype.getCamToCenter = function () {
   return this.getCameraPosition().multiplyScalar(-1);
 };
 
-ChunkedECPSphere.prototype.isPatchInFrustum = function (patch) {
+THREE.LODSphere.prototype.isPatchInFrustum = function (patch) {
   var patchBoundingBox = patch.getBoundingBox();
 
   if (this.frustum.intersectsBox(patchBoundingBox)) return true;
   return false;
 };
 
-ChunkedECPSphere.prototype.getCamToPatch = function (patch) {
+THREE.LODSphere.prototype.getCamToPatch = function (patch) {
   var minDist = Infinity;
   var closestCorner = new THREE.Vector3();
   var camPos = this.getCameraPosition();
@@ -227,11 +228,11 @@ ChunkedECPSphere.prototype.getCamToPatch = function (patch) {
   return closestCorner.clone().sub(camPos);
 };
 
-ChunkedECPSphere.prototype.getPerspectiveScaling = function () {
+THREE.LODSphere.prototype.getPerspectiveScaling = function () {
   return this.perspectiveScaling;
 };
 
-ChunkedECPSphere.prototype.getBoundingBoxVisibleArea = function (patch) {
+THREE.LODSphere.prototype.getBoundingBoxVisibleArea = function (patch) {
   var bboxTris = patch.getBoundingBoxTriangles();
 
   // Project to sphere around camera
@@ -280,7 +281,7 @@ ChunkedECPSphere.prototype.getBoundingBoxVisibleArea = function (patch) {
  * Calculate horizontal perspective scaling factor.
  * Divide by object dist to camera to get number of pixels per unit at that dist.
  */
-ChunkedECPSphere.prototype.updatePerspectiveScaling = function () {
+THREE.LODSphere.prototype.updatePerspectiveScaling = function () {
   var vFOV = this.camera.fov*Math.PI/180;
   var heightScale = 2*Math.tan(vFOV/2);
   var aspect = window.innerWidth/window.innerHeight;
@@ -288,13 +289,13 @@ ChunkedECPSphere.prototype.updatePerspectiveScaling = function () {
   this.perspectiveScaling = window.innerWidth/(aspect*heightScale);
 };
 
-ChunkedECPSphere.prototype.updateCameraViewProjection = function () {
+THREE.LODSphere.prototype.updateCameraViewProjection = function () {
   this.cameraViewProjection.multiplyMatrices(
     this.camera.projectionMatrix,
     this.camera.matrixWorldInverse
   );
 };
 
-ChunkedECPSphere.prototype.updateFrustum = function () {
+THREE.LODSphere.prototype.updateFrustum = function () {
   this.frustum.setFromMatrix(this.cameraViewProjection);
 };
