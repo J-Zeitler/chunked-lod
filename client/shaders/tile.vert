@@ -58,7 +58,7 @@ void main() {
   if (useTerrain == 1) {
     float height = textureFetchLerp(terrain, terrainUV);
 
-    vec3 heightOffset = MAX_MAP_VALUE*height*normalize(position);
+    vec3 heightOffset = MAX_HEIGHT*height*normalize(position);
     pos += heightOffset;
   }
 

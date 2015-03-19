@@ -86,20 +86,12 @@ function (tileVert, tileFrag, simplexNoise) {
     coordinateAxes = new CoordinateAxes({ scale: EARTH_RADIUS*3 });
     scene.add(coordinateAxes);
 
-    var geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-    var material = new THREE.MeshBasicMaterial({color: 0x00ff00});
-    var cube = new THREE.Mesh(geometry, material);
-    cube.visible = false;
-    scene.add(cube);
-
     /**
      * Camera controls
      */
-    // controls = new THREE.TrackballControls(camera);
     controls = new PlanetControls({
       camera: camera,
-      planetRadius: EARTH_RADIUS,
-      cube: cube
+      planet: lodSphere
     });
 
     /**

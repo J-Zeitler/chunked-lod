@@ -1,6 +1,6 @@
 var PlanetControls = function (opts) {
   this.camera = opts.camera;
-  this.planetRadius = opts.planetRadius;
+  this.planet = opts.planet;
 
   this.tiltKey = 17; // CTRL
   this.tiltMode = false;
@@ -8,15 +8,13 @@ var PlanetControls = function (opts) {
   this.orbitCam = this.camera.clone();
 
   // Lock camera lookAt to surface point
-  this.cube = opts.cube;
-  this.cube.add(this.camera);
+  this.surfaceHandle = new THREE.Object3D();
+  this.planet.add(this.surfaceHandle);
+  this.surfaceHandle.add(this.camera);
 
   this.orbitControls = new THREE.TrackballControls(this.orbitCam);
   this.orbitControls.noZoom = true;
   this.tiltControls = new THREE.OrbitControls(this.camera);
-
-  this.tiltControls.minPolarAngle = Math.PI*0.0;
-  this.tiltControls.maxPolarAngle = Math.PI*0.4;
 
   this.tiltCamZRotation = 0;
 
@@ -34,9 +32,15 @@ PlanetControls.prototype.init = function () {
   var distFromSurface = this.camera.position.length() - proj.length();
   this.camera.position.copy(this.tiltCamDefaultLookDir.clone().multiplyScalar(distFromSurface));
   this.tiltControls.update();
-  // this.tiltControls.enabled = false;
+
+  // Init constraints
+  this.orbitControls.noPan = true;
+
   this.tiltControls.noRotate = true;
   this.tiltControls.noPan = true;
+
+  this.tiltControls.minPolarAngle = Math.PI*0.0;
+  this.tiltControls.maxPolarAngle = Math.PI*0.4;
 
   window.addEventListener('keydown', this.handleKeyDown.bind(this), false);
   window.addEventListener('keyup', this.handleKeyUp.bind(this), false);
@@ -45,8 +49,8 @@ PlanetControls.prototype.init = function () {
 PlanetControls.prototype.update = function () {
   this.updateOrbitSpeed();
 
-  this.cube.rotation.copy(this.orbitCam.rotation);
-  this.cube.position.copy(this.orbitCam.position);
+  this.surfaceHandle.rotation.copy(this.orbitCam.rotation);
+  this.surfaceHandle.position.copy(this.orbitCam.position);
 
   this.tiltControls.update();
   this.updateTiltCamRotation();
@@ -55,26 +59,26 @@ PlanetControls.prototype.update = function () {
 
 PlanetControls.prototype.updateOrbitSpeed = function () {
   var camToSurface = this.camera.position.length();
-  var speed = Math.abs(Math.atan(camToSurface/this.planetRadius));
+  var speed = Math.abs(Math.atan(camToSurface/this.planet.radius));
   this.orbitControls.rotateSpeed = speed;
 };
 
 PlanetControls.prototype.getCameraPlanetProjection = function (cam) {
-  return cam.position.clone().normalize().multiplyScalar(this.planetRadius);
+  return cam.position.clone().normalize().multiplyScalar(this.planet.radius);
 };
 
 PlanetControls.prototype.handleKeyDown = function (event) {
   if (event.keyCode === this.tiltKey) {
+    this.tiltControls.noZoom = true;
     this.tiltControls.noRotate = false;
-    this.tiltControls.noPan = false;
     this.orbitControls.enabled = false;
   }
 };
 
 PlanetControls.prototype.handleKeyUp = function (event) {
   if (event.keyCode === this.tiltKey) {
+    this.tiltControls.noZoom = false;
     this.tiltControls.noRotate = true;
-    this.tiltControls.noPan = true;
     this.orbitControls.enabled = true;
   }
 };
