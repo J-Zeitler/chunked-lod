@@ -31,7 +31,7 @@ THREE.SpherePatchGeometry = function (anchor, extent, res, radius) {
   for (var y = 0; y < resPlus2; y++) {
     for (var x = 0; x < resPlus2; x++) {
       var r = this.radius;
-      if (x < 1 || x > this.res || y < 0 || y > this.res) {
+      if (x < 1 || x > this.res || y < 1 || y > this.res) {
         r *= (1.0 - 0.05*this.extent);
       }
 
