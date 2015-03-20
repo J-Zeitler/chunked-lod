@@ -1,3 +1,5 @@
+'use strict';
+
 var CoordinateAxes = function (opts) {
   THREE.Object3D.call(this);
 

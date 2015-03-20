@@ -1,5 +1,12 @@
 'use strict';
 
+/**
+ * One single Cache item
+ * @param {string}  key    serializeable key
+ * @param {Object}  value
+ * @param {Node}    prev   previous Node
+ * @param {Node}    next   next Node
+ */
 var Node = function (key, value, prev, next) {
   this.key = key;
   this.value = value;

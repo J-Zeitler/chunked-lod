@@ -1,3 +1,22 @@
+'use strict';
+
+/**
+ * A single patch/tile on the surface of a sphere.
+ * @param Object  opts  initialization object.
+ *
+ * Example construction:
+ *
+ *  var patch = new SpherePatch({
+ *    anchor: {THREE.Vector2},
+ *    extent: {Number},
+ *    parent: {SpherePatch},
+ *    master: {LODSphere},
+ *    level: {Number},
+ *    imageProvider: {TileProvider},
+ *    terrainProvider: {TileProvider}
+ *  });
+ *
+ */
 var SpherePatch = function (opts) {
   opts = opts || {};
 
@@ -7,7 +26,7 @@ var SpherePatch = function (opts) {
   this.master = opts.master;
   this.level = opts.level;
 
-  this.tileProvider = opts.tileProvider;
+  this.imageProvider = opts.imageProvider;
   this.terrainProvider = opts.terrainProvider;
 
   this.parentAlign = opts.parentAlign || new THREE.Vector2(0, 0);
@@ -43,6 +62,10 @@ var SpherePatch = function (opts) {
 /// Updaters
 /////////////////////
 
+/**
+ * Traverse the SpherePatch quad-tree. The update is _bottom up_, i.e. leafs are updated first.
+ * @return {Object}  coverage
+ */
 SpherePatch.prototype.update = function () {
   var childrenReady = false;
   var levelsToLeaf = 0;
@@ -101,7 +124,8 @@ SpherePatch.prototype.update = function () {
 };
 
 /**
- * Update children and return if they cover the _visible_ area of this
+ * Update children and return if they combined coverage to caller.
+ * @return {Object}  combined coverage
  */
 SpherePatch.prototype.updateChildren = function () {
   var bl = this.bottomLeft.update();
@@ -118,26 +142,15 @@ SpherePatch.prototype.updateChildren = function () {
   };
 };
 
-SpherePatch.prototype.updateTextureAlignment = function () {
-  var prevExt = this.texExtent;
-  if (this.parent && !this.terrainReady) {
-    this.texAnchor = this.parent.texAnchor.clone().add(this.parentAlign.clone().multiplyScalar(this.parent.texExtent));
-    this.texExtent = this.parent.texExtent*0.5;
-  } else { // reset to default
-    this.texAnchor.x = 0;
-    this.texAnchor.y = 0;
-    this.texExtent = 1;
-  }
-
-  if (prevExt != this.texExtent) {
-    this.master.uppdatePatchTerrain(this);
-  }
-};
-
 /////////////////////
 /// Hooks
 /////////////////////
 
+/**
+ * Register for a callback when this patch has finished loading its imagery.
+ * @param  {Function} fn  imagery onload callback
+ * @param  {scope}    ctx callback context
+ */
 SpherePatch.prototype.onReady = function (fn, ctx) {
   this._onReadyTasks.push({fn: fn, ctx: ctx});
 
@@ -302,7 +315,7 @@ SpherePatch.prototype.split = function () {
     parent: this,
     master: this.master,
     level: this.level + 1,
-    tileProvider: this.tileProvider,
+    imageProvider: this.imageProvider,
     terrainProvider: this.terrainProvider
   }
 
@@ -356,7 +369,7 @@ SpherePatch.prototype.requestNewTexture = function () {
   if (this.imageLoading) return;
 
   this.imageLoading = true;
-  this.tileProvider.requestTile(this, function (texture) {
+  this.imageProvider.requestTile(this, function (texture) {
     this.imageLoading = false;
     if (!texture) return;
 
@@ -453,6 +466,7 @@ SpherePatch.prototype.destroy = function () {
 SpherePatch.SPLIT_FACTOR = 2.0;
 SpherePatch.SPLIT_TOLERANCE = 1.0;
 
-// How many levels above the leafs should a patch keep its texture?
+// Patches keep their textures when having up to REDUNDANCY_DEPTH levels below them
 SpherePatch.REDUNDANCY_DEPTH = 4;
+// Patches start loading terrain when having at least TERRAIN_START_DEPTH levels below them
 SpherePatch.TERRAIN_START_DEPTH = 3;

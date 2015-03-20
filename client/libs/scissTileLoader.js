@@ -1,5 +1,17 @@
 'use strict';
 
+/**
+ * Asynchronously loads tiles as Images.
+ * @param {Object}  opts  initialization object.
+ *
+ * Example construction:
+ *
+ * var loader = new ScissTileLoader({
+ *   wmsProvider: {ScissWMSProvider},
+ *   layer: {string}
+ * });
+ *
+ */
 var ScissTileLoader = function (opts) {
   opts = opts || {};
 

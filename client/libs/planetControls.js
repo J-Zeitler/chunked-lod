@@ -1,4 +1,18 @@
-var PlanetControls = function (opts) {
+'use strict';
+
+/**
+ * A combination of THREE.OrbitControls and THREE.TrackballControls to add "tilt" to the camera.
+ * @param {Object}  opts  initialization object.
+ *
+ * Example construction:
+ *
+ * var controls = new THREE.PlanetControls({
+ *   camera: camera,
+ *   planet: lodSphere
+ * });
+ *
+ */
+THREE.PlanetControls = function (opts) {
   this.camera = opts.camera;
   this.planet = opts.planet;
 
@@ -23,7 +37,7 @@ var PlanetControls = function (opts) {
   this.init();
 };
 
-PlanetControls.prototype.init = function () {
+THREE.PlanetControls.prototype.init = function () {
   // lock orbit cam to planet surface
   var proj = this.getCameraPlanetProjection(this.orbitCam).multiplyScalar(1.00001);
   this.orbitCam.position.set(proj.x, proj.y, proj.z);
@@ -46,7 +60,7 @@ PlanetControls.prototype.init = function () {
   window.addEventListener('keyup', this.handleKeyUp.bind(this), false);
 };
 
-PlanetControls.prototype.update = function () {
+THREE.PlanetControls.prototype.update = function () {
   this.updateOrbitSpeed();
 
   this.surfaceHandle.rotation.copy(this.orbitCam.rotation);
@@ -57,17 +71,17 @@ PlanetControls.prototype.update = function () {
   this.orbitControls.update();
 };
 
-PlanetControls.prototype.updateOrbitSpeed = function () {
+THREE.PlanetControls.prototype.updateOrbitSpeed = function () {
   var camToSurface = this.camera.position.length();
   var speed = Math.abs(Math.atan(camToSurface/this.planet.radius));
   this.orbitControls.rotateSpeed = speed;
 };
 
-PlanetControls.prototype.getCameraPlanetProjection = function (cam) {
+THREE.PlanetControls.prototype.getCameraPlanetProjection = function (cam) {
   return cam.position.clone().normalize().multiplyScalar(this.planet.radius);
 };
 
-PlanetControls.prototype.handleKeyDown = function (event) {
+THREE.PlanetControls.prototype.handleKeyDown = function (event) {
   if (event.keyCode === this.tiltKey) {
     this.tiltControls.noZoom = true;
     this.tiltControls.noRotate = false;
@@ -75,7 +89,7 @@ PlanetControls.prototype.handleKeyDown = function (event) {
   }
 };
 
-PlanetControls.prototype.handleKeyUp = function (event) {
+THREE.PlanetControls.prototype.handleKeyUp = function (event) {
   if (event.keyCode === this.tiltKey) {
     this.tiltControls.noZoom = false;
     this.tiltControls.noRotate = true;
@@ -83,7 +97,7 @@ PlanetControls.prototype.handleKeyUp = function (event) {
   }
 };
 
-PlanetControls.prototype.updateTiltCamRotation = function () {
+THREE.PlanetControls.prototype.updateTiltCamRotation = function () {
   var newRotZ = this.camera.rotation._z;
   if (this.tiltCamZRotation != newRotZ) {
     this.tiltCamZRotation = newRotZ;

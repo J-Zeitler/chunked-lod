@@ -3,7 +3,8 @@
 /**
  * Features static utility methods for GIS and planetary math
  */
-var MathUtils = {};
+
+var MathUtils = MathUtils || {};
 
 MathUtils.maxLatRadians = 1.484422;
 MathUtils.maxLatDegrees = 85.05113;

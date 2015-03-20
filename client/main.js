@@ -6,9 +6,6 @@ require([
     "libs/vendor/text!shaders/tile.vert",
     "libs/vendor/text!shaders/tile.frag",
     "libs/vendor/text!shaders/simplex-noise.glsl",
-    "mapboxSettings",
-    "virtualEarthSettings",
-    "onterraSettings",
     "libs/scissTileLoader",
     "libs/tileProvider",
     "libs/spherePatch",
@@ -24,9 +21,7 @@ function (tileVert, tileFrag, simplexNoise) {
   var camera, controls, renderer, scene;
   var rendererStats;
   var coordinateAxes, lodSphere;
-  var raycaster;
 
-  var t = new Date();
   var EARTH_RADIUS = MathUtils.EARTH_RADIUS;
 
   init();
@@ -74,7 +69,7 @@ function (tileVert, tileFrag, simplexNoise) {
         vert: tileVert,
         frag: tileFrag
       },
-      tileProvider: imageProvider,
+      imageProvider: imageProvider,
       terrainProvider: terrainProvider
     });
 
@@ -89,7 +84,7 @@ function (tileVert, tileFrag, simplexNoise) {
     /**
      * Camera controls
      */
-    controls = new PlanetControls({
+    controls = new THREE.PlanetControls({
       camera: camera,
       planet: lodSphere
     });
@@ -110,9 +105,6 @@ function (tileVert, tileFrag, simplexNoise) {
   }
 
   function animate() {
-    var dt = new Date() - t;
-    t = new Date();
-
     if (updateLod) {
       lodSphere.update();
     }

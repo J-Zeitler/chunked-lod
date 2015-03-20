@@ -1,5 +1,9 @@
 'use strict';
 
+/**
+ * HTTP GET handle for easier AJAX syntax
+ * @type {Object}
+ */
 var http = {
   get: function (url, callback, ctx) {
     if (typeof callback !== 'function') throw "http.get() needs a callback as second argument";
